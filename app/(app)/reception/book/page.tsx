@@ -1,8 +1,12 @@
 import Link from 'next/link';
 import { listAppointmentsForDay } from '@/lib/fhir/appointments';
+import { fhir } from '@/lib/fhir/client';
+import { listPractitioners } from '@/lib/fhir/practitioners';
+import type { Patient } from '@/lib/fhir/resources';
 import { todayDateParam } from '@/lib/clinical/scheduling';
 import { Card, CardTitle } from '@/components/ui/primitives';
 import { BookAppointmentForm } from '@/components/scheduling/book-appointment-form';
+import { fullName } from '@/lib/utils';
 import { CalendarPlus } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
@@ -14,13 +18,26 @@ export default async function BookAppointmentPage({
 }) {
   const date = searchParams.date ?? todayDateParam();
   const bookPatientId = searchParams.patientId?.trim();
-  const bookPatientName = searchParams.patientName?.trim();
-  const initialBookPatient =
-    bookPatientId && bookPatientName
-      ? { id: bookPatientId, name: bookPatientName }
-      : undefined;
+  let bookPatientName = searchParams.patientName?.trim();
 
-  const rows = await listAppointmentsForDay(date);
+  if (bookPatientId && !bookPatientName) {
+    try {
+      const patient = await fhir.read<Patient>('Patient', bookPatientId);
+      bookPatientName = fullName(patient);
+    } catch {
+      bookPatientName = 'Patient';
+    }
+  }
+
+  const initialBookPatient = bookPatientId
+    ? { id: bookPatientId, name: bookPatientName ?? 'Patient' }
+    : undefined;
+
+  const [rows, providers] = await Promise.all([
+    listAppointmentsForDay(date),
+    listPractitioners(),
+  ]);
+
   const scheduledToday = rows.filter(
     r => r.workflow === 'scheduled' && r.appointment.status !== 'noshow',
   ).length;
@@ -31,7 +48,7 @@ export default async function BookAppointmentPage({
         <div>
           <h1 className="text-xl font-medium mb-1">Book Appointment</h1>
           <p className="text-sm text-ink-500">
-            Search for a patient, choose nurse or doctor visit type, and schedule a time.
+            Patient, provider, and time — each provider can only have one visit at a time.
             After booking, check in from the reception desk.
           </p>
         </div>
@@ -46,8 +63,10 @@ export default async function BookAppointmentPage({
       <Card className="mb-4">
         <CardTitle icon={<CalendarPlus className="h-4 w-4" />}>New appointment</CardTitle>
         <BookAppointmentForm
+          key={bookPatientId ?? 'book-new'}
           defaultDate={date}
           initialPatient={initialBookPatient}
+          providers={providers}
           afterBookPath="/reception"
         />
       </Card>

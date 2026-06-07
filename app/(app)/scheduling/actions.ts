@@ -26,7 +26,12 @@ export async function bookAppointment(args: {
   clinicRole: ClinicRole;
   start: string;
   description?: string;
+  practitionerId: string;
+  practitionerName?: string;
 }): Promise<Appointment> {
+  if (!args.practitionerId?.trim()) {
+    throw new Error('Select a provider for this appointment.');
+  }
   const created = await createAppointment(args);
   revalidateScheduling();
   return created;

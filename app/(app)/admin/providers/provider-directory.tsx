@@ -46,9 +46,15 @@ export function ProviderDirectory({ initial }: { initial: ProviderRow[] }) {
           </div>
           <div>
             <label className="block text-xs text-ink-500 mb-1">Role</label>
-            <select className={inputClass} value={form.role} onChange={e => set('role', e.target.value as 'doctor' | 'nurse')}>
+            <select
+              className={inputClass}
+              value={form.role}
+              onChange={e => set('role', e.target.value as ProviderFormData['role'])}
+            >
               <option value="doctor">Physician</option>
               <option value="nurse">Nurse</option>
+              <option value="reception">Reception</option>
+              <option value="admin">Admin</option>
             </select>
           </div>
           <div>

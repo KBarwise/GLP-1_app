@@ -47,6 +47,7 @@ export type ConsultChartForm = {
   agentCode: string;
   doseIndex: number;
   medications: ConsultMedication[];
+  medicationDiscontinuations: string[];
   incretinChangeType: MedicationChangeType;
   incretinPriority: MedicationPriority;
   step?: ConsultChartStep;
@@ -62,6 +63,7 @@ export function emptyConsultChartForm(): ConsultChartForm {
     agentCode: CONSULT_AGENTS[0].code,
     doseIndex: 0,
     medications: [],
+    medicationDiscontinuations: [],
     incretinChangeType: 'start',
     incretinPriority: 'routine',
     step: 'encounter',
@@ -125,7 +127,7 @@ export function normalizeMedications(raw: unknown): ConsultMedication[] {
         out.push({
           code: entry.code,
           display: entry.display,
-          changeType: (['start', 'continue', 'change', 'refill'] as const).includes(
+          changeType: (['start', 'continue', 'change', 'refill', 'stop'] as const).includes(
             o.changeType as MedicationChangeType,
           )
             ? (o.changeType as MedicationChangeType)
@@ -187,11 +189,14 @@ export function parseConsultChartDraft(raw: string | null): ConsultChartForm | n
       prescribeIncretin: parsed.prescribeIncretin ?? parsed.prescribe !== false,
       agentCode,
       doseIndex,
+      medicationDiscontinuations: Array.isArray(parsed.medicationDiscontinuations)
+        ? parsed.medicationDiscontinuations.filter((c): c is string => typeof c === 'string')
+        : [],
       medications:
         parsed.medications !== undefined
           ? normalizeMedications(parsed.medications)
           : normalizeMedications(parsed.medicationCodes),
-      incretinChangeType: (['start', 'continue', 'change', 'refill'] as const).includes(
+      incretinChangeType: (['start', 'continue', 'change', 'refill', 'stop'] as const).includes(
         parsed.incretinChangeType as MedicationChangeType,
       )
         ? (parsed.incretinChangeType as MedicationChangeType)
@@ -234,8 +239,14 @@ export function validateConsultChartStep(
   return null;
 }
 
-export function validateConsultChartComplete(form: ConsultChartForm): string | null {
+export function validateConsultChartComplete(
+  form: ConsultChartForm,
+  incretinBlockReasons?: string[],
+): string | null {
   if (!form.reason.trim()) return 'Reason for encounter is required';
   if (form.diagnoses.length === 0) return 'Select at least one diagnosis';
+  if (form.prescribeIncretin && incretinBlockReasons && incretinBlockReasons.length > 0) {
+    return incretinBlockReasons[0] ?? 'Incretin therapy is contraindicated for this patient';
+  }
   return null;
 }

@@ -1,5 +1,6 @@
 import { ClinicProvider } from '@/components/clinic/clinic-context';
 import { AppShell } from '@/components/clinic/app-shell';
+import { documentTitle, PRODUCT_DESCRIPTION } from '@/lib/clinic/branding';
 import { getClinicNameFromCookie } from '@/lib/clinic/server-clinic';
 import { getActingRoleFromCookie } from '@/lib/clinic/server-role';
 import type { Metadata } from 'next';
@@ -7,8 +8,8 @@ import type { Metadata } from 'next';
 export async function generateMetadata(): Promise<Metadata> {
   const clinicName = getClinicNameFromCookie();
   return {
-    title: clinicName,
-    description: 'Clinical surveillance for incretin therapy',
+    title: { absolute: documentTitle(clinicName) },
+    description: PRODUCT_DESCRIPTION,
   };
 }
 

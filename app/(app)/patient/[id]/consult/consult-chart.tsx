@@ -43,8 +43,11 @@ import {
 } from '@/lib/clinical/medication-qualifiers';
 import { inputClass, labelClass } from '@/components/clinical/form-styles';
 import { DoseSelector } from '@/components/clinical/dose-selector';
+import { ActiveMedicationsPanel } from '@/components/clinical/active-medications-panel';
 import { PrescriptionScreeningPanel } from '@/components/patient/prescription-screening-panel';
+import type { IncretinPrescribingBlock } from '@/lib/clinical/incretin-prescribing-guards';
 import type { ScreeningEvaluation } from '@/lib/screening/evaluate-prescription';
+import type { MedicationRequest } from '@/lib/fhir/resources';
 import { Check, Cloud } from 'lucide-react';
 
 function formatSavedTime(date: Date): string {
@@ -56,14 +59,18 @@ export function ConsultChart({
   appointmentId,
   chartBackHref,
   existingMedicationCodes = [],
+  activeMedications = [],
   screening,
+  incretinBlock,
 }: {
   patientId: string;
   appointmentId?: string;
-  /** When set, Back on the first step returns to the clinical chart. */
+  /** When set, Back on the first step leaves the consult workspace (e.g. doctor queue). */
   chartBackHref?: string;
   existingMedicationCodes?: string[];
+  activeMedications?: MedicationRequest[];
   screening: ScreeningEvaluation;
+  incretinBlock: IncretinPrescribingBlock;
 }) {
   const existingMedSet = new Set(existingMedicationCodes);
   const router = useRouter();
@@ -110,6 +117,11 @@ export function ConsultChart({
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     };
   }, [patientId]);
+
+  useEffect(() => {
+    if (!incretinBlock.blocked) return;
+    setForm(prev => (prev.prescribeIncretin ? { ...prev, prescribeIncretin: false } : prev));
+  }, [incretinBlock.blocked]);
 
   const saveLocalDraft = useCallback(
     (snapshot: ConsultChartForm, currentStep: ConsultChartStep) => {
@@ -247,7 +259,7 @@ export function ConsultChart({
   }
 
   function completeConsultation() {
-    const err = validateConsultChartComplete(form);
+    const err = validateConsultChartComplete(form, incretinBlock.reasons);
     if (err) {
       setStepError(err);
       if (!form.reason.trim()) setStep('encounter');
@@ -276,6 +288,7 @@ export function ConsultChart({
           diagnoses: form.diagnoses,
           labPanels: form.labPanels,
           medications: form.medications,
+          medicationDiscontinuations: form.medicationDiscontinuations,
           prescribeIncretin: form.prescribeIncretin
             ? {
                 agentCode: form.agentCode,
@@ -492,10 +505,43 @@ export function ConsultChart({
         </section>
       )}
 
-      {step === 'screening' && <PrescriptionScreeningPanel screening={screening} compact />}
+      {step === 'screening' && (
+        <>
+          {incretinBlock.blocked && (
+            <div className="p-3 rounded-md border border-danger/30 bg-danger-soft/40 text-danger text-[12px] space-y-1">
+              <p className="font-medium">Do not prescribe incretin therapy</p>
+              <ul className="list-disc pl-4 space-y-0.5">
+                {incretinBlock.reasons.map(reason => (
+                  <li key={reason}>{reason}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+          <PrescriptionScreeningPanel screening={screening} compact />
+        </>
+      )}
 
       {step === 'plan' && (
         <>
+          {incretinBlock.blocked && (
+            <div className="p-3 rounded-md border border-danger/30 bg-danger-soft/40 text-danger text-[12px] space-y-1">
+              <p className="font-medium">Incretin prescribing blocked</p>
+              <ul className="list-disc pl-4 space-y-0.5">
+                {incretinBlock.reasons.map(reason => (
+                  <li key={reason}>{reason}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          <ActiveMedicationsPanel
+            medications={activeMedications}
+            discontinuations={form.medicationDiscontinuations}
+            onDiscontinuationsChange={codes =>
+              updateForm(prev => ({ ...prev, medicationDiscontinuations: codes }))
+            }
+          />
+
           <section className="border border-ink-100 rounded-lg p-4 bg-white space-y-3">
             <div>
               <h3 className="text-sm font-medium">Laboratory orders</h3>
@@ -550,13 +596,17 @@ export function ConsultChart({
           />
 
           <section className="border border-ink-100 rounded-lg p-4 bg-white">
-            <label className="flex items-center gap-2 mb-3">
+            <label className={`flex items-center gap-2 mb-3 ${incretinBlock.blocked ? 'opacity-60' : ''}`}>
               <input
                 type="checkbox"
                 checked={form.prescribeIncretin}
+                disabled={incretinBlock.blocked}
                 onChange={e => updateForm(prev => ({ ...prev, prescribeIncretin: e.target.checked }))}
               />
-              <span className="text-sm font-medium">Prescribe incretin therapy</span>
+              <span className="text-sm font-medium">
+                Prescribe incretin therapy
+                {incretinBlock.blocked ? ' (contraindicated)' : ''}
+              </span>
             </label>
             {form.prescribeIncretin && (
               <div className="space-y-3 pl-6">
@@ -644,7 +694,7 @@ export function ConsultChart({
           disabled={!canGoBack || pending}
           className="px-4 py-2 text-[12px] border border-ink-100 rounded-md bg-white hover:bg-ink-50 disabled:opacity-40 disabled:cursor-not-allowed"
         >
-          {stepIndex === 0 && chartBackHref ? 'Back to chart' : 'Back'}
+          {stepIndex === 0 && chartBackHref ? 'Back to queue' : 'Back'}
         </button>
         <div className="flex flex-wrap items-center justify-end gap-2">
           <button

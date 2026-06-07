@@ -2,7 +2,7 @@ export type ProviderFormData = {
   family: string;
   given: string;
   npi: string;
-  role: 'doctor' | 'nurse';
+  role: 'doctor' | 'nurse' | 'reception' | 'admin';
   phone: string;
   email: string;
   active: boolean;

@@ -4,6 +4,7 @@ import { cookies } from 'next/headers';
 import { revalidatePath } from 'next/cache';
 import { DEFAULT_CLINIC_NAME, STORAGE_KEYS } from '@/lib/clinic/roles';
 import { getActingRoleFromCookie } from '@/lib/clinic/server-role';
+import { saveClinicNameToFhir } from '@/lib/clinic/fhir-clinic-settings';
 import {
   FHIR_COOKIE,
   isFhirServerPresetId,
@@ -27,7 +28,7 @@ function assertAdmin(): void {
 export async function saveClinicName(name: string): Promise<void> {
   assertAdmin();
 
-  const trimmed = name.trim() || DEFAULT_CLINIC_NAME;
+  const trimmed = await saveClinicNameToFhir(name.trim() || DEFAULT_CLINIC_NAME);
   cookies().set(STORAGE_KEYS.clinicName, trimmed, {
     path: '/',
     maxAge: 60 * 60 * 24 * 365,

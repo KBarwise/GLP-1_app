@@ -7,7 +7,12 @@ import {
   kioskScreeningPassed,
   screeningSummaryMessage,
 } from '@/lib/screening/evaluate-kiosk';
-import type { KioskConditionSelection, KioskDemographics } from '@/lib/kiosk/intake-types';
+import type {
+  KioskConditionSelection,
+  KioskDemographics,
+  KioskScreeningItemRecord,
+} from '@/lib/kiosk/intake-types';
+import { persistKioskIntakeToPatient } from '@/lib/kiosk/persist-intake-to-patient';
 import {
   saveKioskIntakeLead,
   listPendingKioskIntakes,
@@ -84,6 +89,12 @@ export async function submitKioskScreening(args: {
     },
     screeningOverall: screening.overall,
     screeningSummary: screeningSummaryMessage(screening.overall),
+    reportedConditions: args.conditions,
+    screeningItems: screening.items.map(i => ({
+      label: i.label,
+      level: i.level,
+      reason: i.reason,
+    })),
   });
   revalidateKioskQueues();
 
@@ -163,7 +174,12 @@ export async function loadKioskIntakeForRegistration(intakeId: string) {
 }
 
 export async function completeKioskIntakeRegistration(intakeId: string, patientId: string) {
+  const lead = await getKioskIntakeLead(intakeId);
+  if (lead) {
+    await persistKioskIntakeToPatient(patientId, lead);
+  }
   await markKioskIntakeRegistered(intakeId, patientId);
+  revalidatePath(`/patient/${patientId}`);
   revalidateKioskQueues();
 }
 
@@ -171,6 +187,8 @@ const DIET_EXERCISE_SUMMARY = 'Diet & exercise pathway — awaiting registration
 
 export async function confirmKioskFailChoice(args: {
   demographics: KioskDemographics;
+  conditions: KioskConditionSelection[];
+  screeningItems?: KioskScreeningItemRecord[];
   choice: 'reception-diet-exercise' | 'discard';
 }): Promise<{ saved: boolean; message: string }> {
   const d = args.demographics;
@@ -205,6 +223,8 @@ export async function confirmKioskFailChoice(args: {
     },
     screeningOverall: 'red',
     screeningSummary: DIET_EXERCISE_SUMMARY,
+    reportedConditions: args.conditions,
+    screeningItems: args.screeningItems ?? [],
   });
   revalidateKioskQueues();
 

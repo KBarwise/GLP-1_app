@@ -6,7 +6,7 @@ import { RoleSwitcher } from './role-switcher';
 import { ShieldHalf } from 'lucide-react';
 
 export function KioskShell({ children }: { children: React.ReactNode }) {
-  const { clinicName } = useClinic();
+  const { clinicName, productSubtitle } = useClinic();
 
   return (
     <div className="h-screen min-h-screen bg-ink-50 flex flex-col overflow-hidden">
@@ -15,7 +15,7 @@ export function KioskShell({ children }: { children: React.ReactNode }) {
           <ShieldHalf className="h-8 w-8 text-accent shrink-0" />
           <div>
             <h1 className="text-lg font-medium">{clinicName}</h1>
-            <p className="text-sm text-ink-500">GLP-1 Pre-screening kiosk</p>
+            <p className="text-sm text-ink-500">{productSubtitle} · Pre-screening kiosk</p>
           </div>
         </div>
       </header>

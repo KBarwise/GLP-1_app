@@ -32,7 +32,8 @@ export async function bookAppointment(args: {
   if (!args.practitionerId?.trim()) {
     throw new Error('Select a provider for this appointment.');
   }
-  const created = await createAppointment(args);
+  const normalizedStart = new Date(args.start).toISOString();
+  const created = await createAppointment({ ...args, start: normalizedStart });
   revalidateScheduling();
   return created;
 }

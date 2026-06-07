@@ -21,10 +21,36 @@ export default async function ReceptionPage({
   searchParams: { date?: string };
 }) {
   const date = searchParams.date ?? todayDateParam();
-  const rows = await listAppointmentsForDay(date);
-  const board = rows.filter(r => r.appointment.status !== 'fulfilled' && r.appointment.status !== 'noshow');
-  const checkout = rows.filter(r => matchesWorkflow(r, workflowForReceptionCheckout()));
-  const billing = rows.filter(r => matchesWorkflow(r, workflowForBilling()));
+  let rows: Awaited<ReturnType<typeof listAppointmentsForDay>> = [];
+  let appointmentsError: string | null = null;
+
+  try {
+    rows = await listAppointmentsForDay(date);
+  } catch (e) {
+    appointmentsError = (e as Error).message;
+  }
+
+  const checkout = rows.filter(
+    r =>
+      matchesWorkflow(r, workflowForReceptionCheckout())
+      && r.appointment.status !== 'fulfilled'
+      && r.appointment.status !== 'noshow'
+      && r.appointment.status !== 'cancelled',
+  );
+  const billing = rows.filter(
+    r =>
+      matchesWorkflow(r, workflowForBilling())
+      && r.appointment.status !== 'fulfilled'
+      && r.appointment.status !== 'noshow'
+      && r.appointment.status !== 'cancelled',
+  );
+  const board = rows.filter(
+    r =>
+      r.appointment.status !== 'fulfilled'
+      && r.appointment.status !== 'noshow'
+      && r.appointment.status !== 'cancelled'
+      && !matchesWorkflow(r, workflowForReceptionCheckout()),
+  );
 
   return (
     <div className="p-6 max-w-5xl">
@@ -36,6 +62,12 @@ export default async function ReceptionPage({
         </Link>{' '}
         in the menu to schedule visits.
       </p>
+
+      {appointmentsError && (
+        <p className="text-[13px] text-danger mb-4 rounded-md border border-danger/30 bg-danger-soft/40 px-3 py-2">
+          Could not load today&apos;s appointments: {appointmentsError}
+        </p>
+      )}
 
       <ReturningSymptomPanel />
       <KioskIntakePanel />

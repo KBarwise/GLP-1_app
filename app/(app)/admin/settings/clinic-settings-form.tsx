@@ -1,6 +1,7 @@
 'use client';
 
 import { useClinic } from '@/components/clinic/clinic-context';
+import { PRODUCT_FULL_NAME } from '@/lib/clinic/branding';
 import { useEffect, useState, useTransition } from 'react';
 import { saveClinicName } from './actions';
 
@@ -32,6 +33,10 @@ export function ClinicSettingsForm() {
 
   return (
     <form onSubmit={onSave} className="space-y-3 text-[13px]">
+      <div className="rounded-md border border-ink-100 bg-ink-50 px-3 py-2.5 text-[12px] text-ink-600">
+        <span className="text-ink-500">Product</span>
+        <div className="font-medium text-ink-900 mt-0.5">{PRODUCT_FULL_NAME}</div>
+      </div>
       <div>
         <label className="block text-xs text-ink-500 mb-1.5">Clinic display name</label>
         <input
@@ -52,7 +57,7 @@ export function ClinicSettingsForm() {
       </button>
       {saved && (
         <p className="text-[12px] text-accent">
-          Saved — the name is stored for this browser and survives refresh.
+          Saved — this clinic name is stored for this browser and appears in the app shell and kiosk.
         </p>
       )}
       {error && <p className="text-[12px] text-danger">{error}</p>}

@@ -9,6 +9,7 @@ import { getFhirServerConfigForAdmin } from '@/lib/fhir/config';
 import { getTerminologyConfigForAdmin } from '@/lib/terminology/config';
 import { FHIR_COOKIE } from '@/lib/fhir/servers';
 import { TERMINOLOGY_COOKIE } from '@/lib/terminology/servers';
+import { PRODUCT_FULL_NAME } from '@/lib/clinic/branding';
 import { Database, PlugZap, Settings } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
@@ -25,11 +26,17 @@ export default function AdminSettingsPage() {
     <div className="p-6 max-w-5xl">
       <h1 className="text-xl font-medium mb-1">Clinic Settings</h1>
       <p className="text-sm text-ink-500 mb-4">
-        Branding, FHIR clinical server, and SNOMED terminology endpoints for this demo clinic.
+        Configure this clinic&apos;s display name and clinical data connections. The product is{' '}
+        <strong className="font-medium text-ink-700">{PRODUCT_FULL_NAME}</strong> — shared across
+        all deployments; each site sets its own clinic name below.
       </p>
 
       <Card className="mb-4">
-        <CardTitle icon={<Settings className="h-4 w-4" />}>Branding</CardTitle>
+        <CardTitle icon={<Settings className="h-4 w-4" />}>Clinic branding</CardTitle>
+        <p className="text-[12px] text-ink-500 mb-3">
+          Shown in the sidebar, kiosk header, and browser tab (with Sentinel). Patient and clinical
+          data remain tied to your FHIR server — not the display name.
+        </p>
         <ClinicSettingsForm />
       </Card>
 

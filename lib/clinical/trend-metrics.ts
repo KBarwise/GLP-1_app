@@ -80,11 +80,7 @@ export const PRIORITY_LAB_CODES = [
   { code: HEADER_LABS.creatinine.code, display: HEADER_LABS.creatinine.display, unit: 'µmol/L' },
 ] as const;
 
-export const DEFAULT_LAB_SELECTION = [
-  LOINC.hba1c,
-  LOINC.bmi,
-  HEADER_LABS.totalCholesterol.code,
-];
+export const DEFAULT_LAB_SELECTION = [LOINC.hba1c, HEADER_LABS.totalCholesterol.code];
 
 export type DateRangePreset = '24h' | '7d' | '30d' | '6m' | '1y' | 'all';
 

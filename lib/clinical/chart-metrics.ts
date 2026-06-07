@@ -1,8 +1,7 @@
 import { ANTHROPOMETRICS, HEADER_LABS, VITAL_SIGNS } from './lab-catalog';
 import { LOINC } from './observations';
-import { URINALYSIS_POC } from './urinalysis-poc';
 
-export type ChartMetricGroup = 'vitals' | 'anthropometrics' | 'laboratory' | 'poc';
+export type ChartMetricGroup = 'vitals' | 'anthropometrics' | 'laboratory';
 
 export type ChartMetricKind = 'quantity' | 'coded';
 
@@ -45,14 +44,6 @@ export const CHART_METRICS: readonly ChartMetric[] = [
     quantityMetric(`anthro-${a.code}`, a.code, a.display, a.unit, 'anthropometrics'),
   ),
   quantityMetric('anthro-bmi', LOINC.bmi, 'BMI', 'kg/m2', 'anthropometrics'),
-  quantityMetric(
-    'poc-glucose',
-    LOINC.bloodGlucosePoc,
-    'Blood glucose (POC)',
-    'mg/dL',
-    'poc',
-    { refLow: 70, refHigh: 140 },
-  ),
   quantityMetric('lab-hba1c', LOINC.hba1c, 'HbA1c', '%', 'laboratory'),
   ...Object.values(HEADER_LABS).map(lab =>
     quantityMetric(`lab-${lab.code}`, lab.code, lab.display, lab.unit, 'laboratory', {
@@ -60,22 +51,6 @@ export const CHART_METRICS: readonly ChartMetric[] = [
       refHigh: lab.refHigh,
     }),
   ),
-  ...URINALYSIS_POC.map(f => ({
-    id: `ua-${f.loinc}`,
-    loinc: f.loinc,
-    label: f.display,
-    unit: '',
-    group: 'poc' as const,
-    kind: 'coded' as const,
-  })),
-  {
-    id: 'poc-pregnancy',
-    loinc: LOINC.pregnancyTest,
-    label: 'Pregnancy test',
-    unit: '',
-    group: 'poc',
-    kind: 'coded',
-  },
 ];
 
 export const DEFAULT_CHART_METRIC_IDS = [
@@ -83,7 +58,6 @@ export const DEFAULT_CHART_METRIC_IDS = [
   'vital-8462-4',
   'anthro-29463-7',
   'anthro-bmi',
-  'poc-glucose',
   'lab-2093-3',
   'lab-1742-6',
   'lab-3040-3',
@@ -93,7 +67,6 @@ export const CHART_GROUP_LABELS: Record<ChartMetricGroup, string> = {
   vitals: 'Vital signs',
   anthropometrics: 'Anthropometrics',
   laboratory: 'Laboratory',
-  poc: 'Point of care',
 };
 
 export function chartMetricById(id: string): ChartMetric | undefined {

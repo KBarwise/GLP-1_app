@@ -88,10 +88,7 @@ function QueueRow({ row, deskRole }: { row: AppointmentRow; deskRole: ActingRole
   const nurseDocHref = row.patientId
     ? `/patient/${row.patientId}/nurse?appointment=${id}`
     : null;
-  const doctorChartHref = row.patientId
-    ? `/patient/${row.patientId}?appointment=${id}`
-    : null;
-  const doctorDocHref = row.patientId
+  const doctorConsultHref = row.patientId
     ? `/patient/${row.patientId}/consult/document?appointment=${id}`
     : null;
 
@@ -158,28 +155,22 @@ function QueueRow({ row, deskRole }: { row: AppointmentRow; deskRole: ActingRole
             )}
           </>
         )}
-        {deskRole === 'doctor' && row.patientId && doctorChartHref && (
+        {deskRole === 'doctor' && row.patientId && doctorConsultHref && (
           <>
             {(wf === 'ready-for-doctor' || wf === 'doctor-in-progress') && (
               <ActionBtn
                 disabled={pending}
                 onClick={() =>
-                  run(
-                    () =>
-                      wf === 'ready-for-doctor'
-                        ? advanceVisitWorkflow(id, 'doctor-in-progress', 'arrived')
-                        : Promise.resolve(),
-                    doctorChartHref,
-                  )
+                  run(async () => {
+                    if (wf === 'ready-for-doctor') {
+                      await advanceVisitWorkflow(id, 'doctor-in-progress', 'arrived');
+                    }
+                    router.push(doctorConsultHref);
+                  })
                 }
               >
                 Start
               </ActionBtn>
-            )}
-            {wf === 'doctor-in-progress' && doctorDocHref && (
-              <Link href={doctorDocHref} className="text-info text-[12px] px-1">
-                Documentation
-              </Link>
             )}
           </>
         )}

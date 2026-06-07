@@ -8,13 +8,14 @@ import {
 
 export type NurseChartTab = 'vitals' | 'medications' | 'poc' | 'labs';
 
-export const NURSE_CHART_TAB_ORDER: NurseChartTab[] = ['vitals', 'medications', 'poc', 'labs'];
+/** POC / nursing note is last so completion requires an explicit final click. */
+export const NURSE_CHART_TAB_ORDER: NurseChartTab[] = ['vitals', 'medications', 'labs', 'poc'];
 
 export const NURSE_CHART_TABS: { id: NurseChartTab; label: string }[] = [
   { id: 'vitals', label: 'Vital signs & anthropometrics' },
   { id: 'medications', label: 'Current medications' },
-  { id: 'poc', label: 'Point of care & note' },
   { id: 'labs', label: 'Lab import' },
+  { id: 'poc', label: 'Point of care & note' },
 ];
 
 export type NurseChartForm = {

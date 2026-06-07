@@ -28,7 +28,9 @@ export default async function NursePage({
         <CardTitle icon={<Stethoscope className="h-4 w-4" />}>Nurse documentation</CardTitle>
         <p className="text-[12px] text-ink-500 mb-4">
           Use Next and Back to move through each section. Vitals, medications, and POC entries autosave
-          locally and to FHIR. Completing documentation sends the patient to the doctor queue.
+          locally and to FHIR. On the final step, click{' '}
+          <span className="font-medium text-ink-700">Complete and send to doctor</span> to finish nursing
+          documentation and add the patient to the doctor queue.
         </p>
         <NurseChart
           patientId={params.id}

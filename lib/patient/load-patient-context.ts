@@ -5,6 +5,7 @@ import {
   loadProblemListConditions,
 } from '@/lib/clinical/conditions-server';
 import { dedupeMedicationRequestsBySnomedCode } from '@/lib/clinical/medications';
+import { summarizePatientRisk } from '@/lib/patient/risk';
 import { evaluateSignals, splitBundle } from '@/lib/signals/rules';
 import type { Bundle, Condition, MedicationRequest, Observation, Patient } from '@/lib/fhir/resources';
 
@@ -28,10 +29,7 @@ export async function loadPatientContext(id: string) {
       .filter((r): r is MedicationRequest => r?.resourceType === 'MedicationRequest'),
   );
   const signals = evaluateSignals({ observations, conditions: disorders });
-  const redCount = signals.filter(s => s.severity === 'red').length;
-  const amberCount = signals.filter(s => s.severity === 'amber').length;
-  const riskScore = Math.min(100, redCount * 30 + amberCount * 12 + signals.filter(s => s.severity === 'blue').length * 4);
-  const riskTone: 'danger' | 'warning' | 'success' = redCount > 0 ? 'danger' : amberCount > 0 ? 'warning' : 'success';
+  const { riskScore, riskTone } = summarizePatientRisk(signals);
 
   return { patient, observations, disorders, problemList, medications, signals, riskScore, riskTone };
 }

@@ -6,7 +6,13 @@ import {
   type FetchObservationsOpts,
   type LoincFilter,
 } from '@/lib/fhir/fhirObservations';
+import { isLaboratoryLoinc } from '@/lib/clinical/trend-code-sets';
 import type { Observation } from '@/lib/fhir/resources';
+
+function observationCategoryLabel(obs: Observation): string | undefined {
+  const cat = obs.category?.[0];
+  return cat?.coding?.[0]?.display ?? cat?.coding?.[0]?.code ?? cat?.text;
+}
 
 export type UseObservationsOpts = FetchObservationsOpts & {
   enabled?: boolean;
@@ -49,6 +55,7 @@ export function useLabCodeCatalog(patientId: string, dateFrom?: string, dateTo?:
           o.code?.coding?.find(c => c.system?.includes('loinc.org'))?.code
           ?? o.code?.coding?.[0]?.code;
         if (!code) continue;
+        if (!isLaboratoryLoinc(code, observationCategoryLabel(o))) continue;
         const display =
           o.code?.coding?.find(c => c.code === code)?.display
           ?? o.code?.text

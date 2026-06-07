@@ -5,7 +5,14 @@ import { Card, CardTitle } from '@/components/ui/primitives';
 import { ClipboardList } from 'lucide-react';
 
 export async function KioskIntakePanel() {
-  const leads = await getPendingKioskIntakes();
+  let leads: Awaited<ReturnType<typeof getPendingKioskIntakes>> = [];
+  let loadError: string | null = null;
+
+  try {
+    leads = await getPendingKioskIntakes();
+  } catch (e) {
+    loadError = (e as Error).message;
+  }
 
   return (
     <Card className="mb-4">
@@ -16,7 +23,9 @@ export async function KioskIntakePanel() {
         Patients who passed GLP-1 pre-screening or chose the diet-and-exercise pathway after a
         failed screen are listed here.
       </p>
-      {leads.length === 0 ? (
+      {loadError ? (
+        <p className="text-[12px] text-ink-600">Could not load kiosk queue: {loadError}</p>
+      ) : leads.length === 0 ? (
         <p className="text-[13px] text-ink-500 py-2">No patients waiting from the kiosk.</p>
       ) : (
         <table className="w-full text-[13px]">

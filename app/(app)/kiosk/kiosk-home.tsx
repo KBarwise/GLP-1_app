@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { ClipboardList, UserPlus, UserRound } from 'lucide-react';
+import { ClipboardList, Scale, UserPlus, UserRound } from 'lucide-react';
+import Link from 'next/link';
 import { KioskFlow } from './kiosk-flow';
 import { KioskReturningFlow } from './kiosk-returning-flow';
 
@@ -60,6 +61,21 @@ export function KioskHome() {
             </div>
           </div>
         </button>
+
+        <Link
+          href="/kiosk/track-weight"
+          className="block w-full text-left p-5 bg-white border border-ink-100 rounded-xl hover:border-ink-200 transition-colors"
+        >
+          <div className="flex items-start gap-4">
+            <Scale className="h-6 w-6 text-accent shrink-0 mt-0.5" />
+            <div>
+              <div className="text-[16px] font-medium mb-1">Track my weight</div>
+              <p className="text-[14px] text-ink-500 leading-snug">
+                Log your weight at home or in clinic and see your progress over time.
+              </p>
+            </div>
+          </div>
+        </Link>
       </div>
     </div>
   );

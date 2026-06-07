@@ -14,6 +14,12 @@ export type KioskConditionSelection = {
 
 export type KioskIntakePathway = 'glp1' | 'diet-exercise';
 
+export type KioskScreeningItemRecord = {
+  label: string;
+  level: string;
+  reason: string;
+};
+
 export type KioskIntakeLead = {
   id: string;
   createdAt: string;
@@ -23,8 +29,21 @@ export type KioskIntakeLead = {
   screeningSummary: string;
   /** GLP-1 eligible vs diet-and-exercise pathway after failed GLP-1 screen */
   pathway: KioskIntakePathway;
+  /** Self-reported “yes” answers from kiosk medical history screening */
+  reportedConditions: KioskConditionSelection[];
+  /** Evaluated screening line items (for audit on the intake record) */
+  screeningItems?: KioskScreeningItemRecord[];
   registeredPatientId?: string;
 };
+
+/** Backfill fields missing on older kiosk intake JSON payloads. */
+export function normalizeKioskIntakeLead(lead: KioskIntakeLead): KioskIntakeLead {
+  return {
+    ...lead,
+    reportedConditions: lead.reportedConditions ?? [],
+    screeningItems: lead.screeningItems ?? [],
+  };
+}
 
 /** Approximate birth date from age for registration pre-fill (1 Jan of birth year). */
 export function birthDateFromAge(age: number): string {

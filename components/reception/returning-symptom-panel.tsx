@@ -4,7 +4,25 @@ import { Card, CardTitle } from '@/components/ui/primitives';
 import { AlertTriangle } from 'lucide-react';
 
 export async function ReturningSymptomPanel() {
-  const reports = await getNewReturningSymptomReports();
+  let reports: Awaited<ReturnType<typeof getNewReturningSymptomReports>> = [];
+  let loadError: string | null = null;
+
+  try {
+    reports = await getNewReturningSymptomReports();
+  } catch (e) {
+    loadError = (e as Error).message;
+  }
+
+  if (loadError) {
+    return (
+      <Card className="mb-4 border-warning/30">
+        <CardTitle icon={<AlertTriangle className="h-4 w-4 text-warning" />}>
+          Kiosk symptom alerts
+        </CardTitle>
+        <p className="text-[12px] text-ink-600">Could not load symptom alerts: {loadError}</p>
+      </Card>
+    );
+  }
 
   if (reports.length === 0) return null;
 

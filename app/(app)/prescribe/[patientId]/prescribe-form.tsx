@@ -4,8 +4,15 @@ import { useState, useTransition } from 'react';
 import { submitPrescription } from './actions';
 import { DoseSelector } from '@/components/clinical/dose-selector';
 import { CONSULT_AGENTS } from '@/lib/clinical/consult-chart';
+import type { IncretinPrescribingBlock } from '@/lib/clinical/incretin-prescribing-guards';
 
-export function PrescribeForm({ patientId }: { patientId: string }) {
+export function PrescribeForm({
+  patientId,
+  incretinBlock,
+}: {
+  patientId: string;
+  incretinBlock: IncretinPrescribingBlock;
+}) {
   const [agentCode, setAgentCode] = useState<string>(CONSULT_AGENTS[0].code);
   const [doseIndex, setDoseIndex] = useState(0);
   const [pending, startTransition] = useTransition();
@@ -13,8 +20,10 @@ export function PrescribeForm({ patientId }: { patientId: string }) {
 
   const agent = CONSULT_AGENTS.find(a => a.code === agentCode)!;
   const dose = agent.doses[doseIndex];
+  const blocked = incretinBlock.blocked;
 
   function onSubmit() {
+    if (blocked) return;
     setResult(null);
     startTransition(async () => {
       try {
@@ -34,12 +43,24 @@ export function PrescribeForm({ patientId }: { patientId: string }) {
 
   return (
     <div className="space-y-4 text-[13px]">
+      {blocked && (
+        <div className="p-3 rounded-md border border-danger/30 bg-danger-soft/40 text-danger text-[12px] space-y-1">
+          <p className="font-medium">Incretin therapy is contraindicated</p>
+          <ul className="list-disc pl-4 space-y-0.5">
+            {incretinBlock.reasons.map(reason => (
+              <li key={reason}>{reason}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       <div>
         <label className="block text-xs text-ink-500 mb-1.5">Agent</label>
         <select
           value={agentCode}
+          disabled={blocked}
           onChange={e => { setAgentCode(e.target.value); setDoseIndex(0); }}
-          className="w-full px-3 py-2 border border-ink-100 rounded-md bg-white"
+          className="w-full px-3 py-2 border border-ink-100 rounded-md bg-white disabled:opacity-50"
         >
           {CONSULT_AGENTS.map(a => (
             <option key={a.code} value={a.code}>{a.display}</option>
@@ -63,8 +84,9 @@ export function PrescribeForm({ patientId }: { patientId: string }) {
 
       <div className="flex gap-2 pt-2">
         <button
+          type="button"
           onClick={onSubmit}
-          disabled={pending}
+          disabled={pending || blocked}
           className="px-4 py-2 bg-ink-900 text-white text-[12px] rounded-md hover:bg-ink-700 disabled:opacity-50"
         >
           {pending ? 'Submitting…' : 'Create MedicationRequest'}

@@ -1,5 +1,6 @@
 import { cookies } from 'next/headers';
 import { DEFAULT_CLINIC_NAME, STORAGE_KEYS } from './roles';
+import { getClinicNameFromFhir } from './fhir-clinic-settings';
 
 export function getClinicNameFromCookie(): string {
   const raw = cookies().get(STORAGE_KEYS.clinicName)?.value;
@@ -10,4 +11,10 @@ export function getClinicNameFromCookie(): string {
   } catch {
     return raw.trim() || DEFAULT_CLINIC_NAME;
   }
+}
+
+export async function getClinicName(): Promise<string> {
+  const fromFhir = await getClinicNameFromFhir();
+  if (fromFhir?.trim()) return fromFhir.trim();
+  return getClinicNameFromCookie();
 }

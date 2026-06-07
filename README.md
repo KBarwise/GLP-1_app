@@ -1,6 +1,8 @@
-# GLP-1 Safety Monitor
+# Sentinel by Lucea Health
 
-Clinical demo app for GLP-1 therapy workflows: reception, nursing intake, doctor consultation, FHIR-backed patient data, and a patient-facing kiosk for pre-screening and symptom reporting.
+Clinical workflow app for incretin (GLP-1 / GIP) therapy: reception, nursing intake, doctor consultation, FHIR-backed patient data, and a patient-facing kiosk for pre-screening and symptom reporting.
+
+Each deployment can set its own **clinic display name** in Admin → Clinic Settings (sidebar, kiosk header, browser tab). Clinical data is stored on your configured FHIR server.
 
 Built with **Next.js 14**, **Tailwind CSS**, **TanStack Query**, **Recharts**, and **FHIR R4**.
 

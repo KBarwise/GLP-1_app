@@ -45,13 +45,55 @@ function quantityRow(def: LabAnalyte, obs: Observation): NurseIntakeRow {
   };
 }
 
-export function buildNurseIntakeSummary(observations: Observation[]): NurseIntakeSummary {
+const SYSTOLIC_LOINC = '8480-6';
+const DIASTOLIC_LOINC = '8462-4';
+
+function buildVitalRows(observations: Observation[]): NurseIntakeRow[] {
   const vitals: NurseIntakeRow[] = [];
+  const sysObs = latestObservationValue(observations, SYSTOLIC_LOINC);
+  const diaObs = latestObservationValue(observations, DIASTOLIC_LOINC);
+  const sysVal = sysObs?.valueQuantity?.value;
+  const diaVal = diaObs?.valueQuantity?.value;
+
+  if (sysVal !== undefined && diaVal !== undefined) {
+    const sysDef = VITAL_SIGNS.find(v => v.code === SYSTOLIC_LOINC)!;
+    const diaDef = VITAL_SIGNS.find(v => v.code === DIASTOLIC_LOINC)!;
+    const sysStatus = analyteStatus(sysVal, sysDef);
+    const diaStatus = analyteStatus(diaVal, diaDef);
+    const combinedStatus =
+      sysStatus === 'critical' || diaStatus === 'critical'
+        ? 'critical'
+        : sysStatus === 'warning' || diaStatus === 'warning'
+          ? 'warning'
+          : 'normal';
+    vitals.push({
+      label: 'Blood pressure',
+      value: `${Math.round(sysVal)}/${Math.round(diaVal)}`,
+      unit: 'mmHg',
+      date: formatDate(sysObs?.effectiveDateTime ?? diaObs?.effectiveDateTime),
+      status: combinedStatus,
+    });
+  } else {
+    if (sysVal !== undefined && sysObs) {
+      vitals.push(quantityRow(VITAL_SIGNS.find(v => v.code === SYSTOLIC_LOINC)!, sysObs));
+    }
+    if (diaVal !== undefined && diaObs) {
+      vitals.push(quantityRow(VITAL_SIGNS.find(v => v.code === DIASTOLIC_LOINC)!, diaObs));
+    }
+  }
+
   for (const def of VITAL_SIGNS) {
+    if (def.code === SYSTOLIC_LOINC || def.code === DIASTOLIC_LOINC) continue;
     const obs = latestObservationValue(observations, def.code);
     if (!obs || obs.valueQuantity?.value === undefined) continue;
     vitals.push(quantityRow(def, obs));
   }
+
+  return vitals;
+}
+
+export function buildNurseIntakeSummary(observations: Observation[]): NurseIntakeSummary {
+  const vitals = buildVitalRows(observations);
 
   const anthropometrics: NurseIntakeRow[] = [];
   for (const def of ANTHROPOMETRICS) {

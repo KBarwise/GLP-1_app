@@ -1,10 +1,14 @@
 import './globals.css';
 import { Providers } from './providers';
+import { PRODUCT_DESCRIPTION, PRODUCT_FULL_NAME, PRODUCT_NAME } from '@/lib/clinic/branding';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'GLP-1 safety monitor',
-  description: 'Clinical surveillance for incretin therapy',
+  title: {
+    default: PRODUCT_FULL_NAME,
+    template: `%s · ${PRODUCT_NAME}`,
+  },
+  description: PRODUCT_DESCRIPTION,
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

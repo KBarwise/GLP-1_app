@@ -14,9 +14,11 @@ export default async function NurseClinicPage({
 }) {
   const date = searchParams.date ?? todayDateParam();
   const rows = await listAppointmentsForDay(date);
-  const queue = rows.filter(r =>
-    workflowForNurseQueue().includes(r.workflow)
-    && r.appointment.status !== 'fulfilled',
+  const queue = rows.filter(
+    r =>
+      workflowForNurseQueue().includes(r.workflow)
+      && r.appointment.status !== 'fulfilled'
+      && r.appointment.status !== 'cancelled',
   );
 
   return (

@@ -14,9 +14,67 @@ export type AppointmentRow = {
   appointment: Appointment;
   patientId?: string;
   patientName: string;
+  patientMrn?: string;
   clinicRole: ClinicRole | null;
   workflow: VisitWorkflow;
 };
+
+function localDateParamFromIso(iso: string): string {
+  const d = new Date(iso);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+function isActiveAppointmentStatus(status: Appointment['status'] | undefined): boolean {
+  return status !== 'fulfilled' && status !== 'noshow' && status !== 'cancelled';
+}
+
+function appointmentStatusPriority(status: Appointment['status'] | undefined): number {
+  if (status === 'arrived') return 3;
+  if (status === 'booked') return 2;
+  if (status === 'fulfilled') return 1;
+  return 0;
+}
+
+function normalizeName(value: string): string {
+  return value.trim().toLowerCase().replace(/\s+/g, ' ');
+}
+
+function getPatientMrn(patient?: Patient): string | undefined {
+  if (!patient) return undefined;
+  const typedMrn = patient.identifier?.find(id =>
+    id.type?.coding?.some(c => c.code === 'MR'),
+  )?.value?.trim();
+  if (typedMrn) return typedMrn;
+  return patient.identifier?.[0]?.value?.trim() || undefined;
+}
+
+function dedupeAppointmentRows(rows: AppointmentRow[]): AppointmentRow[] {
+  const byKey = new Map<string, AppointmentRow>();
+  for (const row of rows) {
+    const key = isActiveAppointmentStatus(row.appointment.status)
+      ? (row.patientMrn
+        ? `mrn:${row.patientMrn}`
+        : row.patientId
+          ? `patient:${row.patientId}`
+          : `name:${normalizeName(row.patientName)}`)
+      : (row.patientId
+        ? `${row.patientId}|${row.appointment.start}`
+        : `${normalizeName(row.patientName)}|${row.appointment.start}`);
+
+    const existing = byKey.get(key);
+    if (!existing) {
+      byKey.set(key, row);
+      continue;
+    }
+    const existingPriority = appointmentStatusPriority(existing.appointment.status);
+    const nextPriority = appointmentStatusPriority(row.appointment.status);
+    if (nextPriority > existingPriority) byKey.set(key, row);
+  }
+  return [...byKey.values()].sort((a, b) => (a.appointment.start ?? '').localeCompare(b.appointment.start ?? ''));
+}
 
 function splitAppointments(bundle: Bundle): Appointment[] {
   return (bundle.entry ?? [])
@@ -73,6 +131,7 @@ export function toAppointmentRow(a: Appointment, patients: Map<string, Patient>)
     appointment: a,
     patientId,
     patientName: patient ? fullName(patient) : a.participant?.[0]?.actor?.display ?? 'Unknown patient',
+    patientMrn: getPatientMrn(patient),
     clinicRole: clinicRoleFromAppointment(a.appointmentType),
     workflow: workflowFromAppointment(a),
   };
@@ -101,7 +160,8 @@ export async function listAppointmentsForDay(
   try {
     const bundle = await fhir.search<Bundle>('Appointment', params);
     const patients = patientsFromBundle(bundle);
-    return splitAppointments(bundle).map(a => toAppointmentRow(a, patients));
+    const rows = splitAppointments(bundle).map(a => toAppointmentRow(a, patients));
+    return dedupeAppointmentRows(rows);
   } catch {
     const bundle = await fhir.search<Bundle>('Appointment', {
       date,
@@ -111,7 +171,7 @@ export async function listAppointmentsForDay(
     const patients = patientsFromBundle(bundle);
     let rows = splitAppointments(bundle).map(a => toAppointmentRow(a, patients));
     if (clinicRole) rows = rows.filter(r => r.clinicRole === clinicRole);
-    return rows;
+    return dedupeAppointmentRows(rows);
   }
 }
 
@@ -144,20 +204,21 @@ export async function createAppointment(args: {
   practitionerId: string;
   practitionerName?: string;
 }): Promise<Appointment> {
+  const normalizedStart = new Date(args.start).toISOString();
   const role = CLINIC_ROLES[args.clinicRole];
-  const start = new Date(args.start);
+  const start = new Date(normalizedStart);
   const end = new Date(start.getTime() + role.minutes * 60_000);
 
-  const conflict = await findPractitionerSchedulingConflict({
+  const practitionerConflict = await findPractitionerSchedulingConflict({
     practitionerId: args.practitionerId,
     start: start.toISOString(),
     end: end.toISOString(),
   });
 
-  if (conflict) {
-    const who = conflict.patientName;
-    const when = conflict.appointment.start
-      ? new Date(conflict.appointment.start).toLocaleTimeString(undefined, {
+  if (practitionerConflict) {
+    const who = practitionerConflict.patientName;
+    const when = practitionerConflict.appointment.start
+      ? new Date(practitionerConflict.appointment.start).toLocaleTimeString(undefined, {
           hour: '2-digit',
           minute: '2-digit',
         })
@@ -167,7 +228,24 @@ export async function createAppointment(args: {
     );
   }
 
-  const resource = buildAppointment(args);
+  const date = localDateParamFromIso(normalizedStart);
+  const patient = await fhir.read<Patient>('Patient', args.patientId);
+  const mrn = getPatientMrn(patient);
+  const existingRows = await listAppointmentsForDay(date);
+  const existingActive = existingRows.find(
+    r =>
+      isActiveAppointmentStatus(r.appointment.status)
+      && (
+        r.patientId === args.patientId
+        || (mrn && r.patientMrn === mrn)
+        || (!mrn && !r.patientId && normalizeName(r.patientName) === normalizeName(args.patientName ?? ''))
+      ),
+  );
+  if (existingActive) {
+    throw new Error('This patient already has an active appointment on the board for this day.');
+  }
+
+  const resource = buildAppointment({ ...args, start: normalizedStart });
   return fhir.create<Appointment>('Appointment', resource);
 }
 
@@ -216,4 +294,19 @@ export async function findActiveDoctorAppointmentForPatient(
     r => r.patientId === patientId && DOCTOR_ACTIVE_WORKFLOWS.includes(r.workflow),
   );
   return match?.appointment.id;
+}
+
+/** Fallback: any active appointment for a patient today (most recent first). */
+export async function findAnyActiveAppointmentForPatient(
+  patientId: string,
+  date?: string,
+): Promise<string | undefined> {
+  const rows = await listAppointmentsForDay(date ?? todayDateParam());
+  const active = rows
+    .filter(r =>
+      r.patientId === patientId
+      && isActiveAppointmentStatus(r.appointment.status),
+    )
+    .sort((a, b) => (b.appointment.start ?? '').localeCompare(a.appointment.start ?? ''));
+  return active[0]?.appointment.id;
 }

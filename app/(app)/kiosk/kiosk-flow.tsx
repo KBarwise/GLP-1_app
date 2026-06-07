@@ -149,10 +149,15 @@ export function KioskFlow({ onBack }: { onBack?: () => void } = {}) {
 
   function handleFailChoice(choice: 'reception-diet-exercise' | 'discard') {
     setError(null);
+    const conditions = KIOSK_SCREENING_CONDITIONS.filter(c =>
+      selectedCodes.includes(c.code),
+    ).map(c => ({ code: c.code, display: c.display }));
     startTransition(async () => {
       try {
         await confirmKioskFailChoice({
           demographics: { ...demographics, age: Number(demographics.age) },
+          conditions,
+          screeningItems: result?.items,
           choice,
         });
         setFailChoice(choice === 'reception-diet-exercise' ? 'reception' : 'discard');

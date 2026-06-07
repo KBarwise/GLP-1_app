@@ -1,6 +1,10 @@
 import { fhir } from '@/lib/fhir/client';
 import type { Basic, Bundle } from '@/lib/fhir/resources';
-import type { KioskIntakeLead } from './intake-types';
+import {
+  normalizeKioskIntakeLead,
+  type KioskIntakeLead,
+  type KioskIntakePathway,
+} from './intake-types';
 import {
   KIOSK_PAYLOAD_URL,
   KIOSK_RECORD_ID_SYSTEM,
@@ -23,6 +27,11 @@ function payloadFromBasic<T>(b: Basic): T | undefined {
   } catch {
     return undefined;
   }
+}
+
+function parseIntakeLead(basic: Basic): KioskIntakeLead | undefined {
+  const lead = payloadFromBasic<KioskIntakeLead>(basic);
+  return lead ? normalizeKioskIntakeLead(lead) : undefined;
 }
 
 async function findBasicByRecordId(recordId: string): Promise<Basic | null> {
@@ -97,13 +106,28 @@ export async function fhirSaveKioskIntakeLead(lead: KioskIntakeLead): Promise<vo
 export async function fhirGetKioskIntakeLead(id: string): Promise<KioskIntakeLead | undefined> {
   const basic = await findBasicByRecordId(id);
   if (!basic) return undefined;
-  return payloadFromBasic<KioskIntakeLead>(basic);
+  return parseIntakeLead(basic);
+}
+
+/** Latest kiosk intake pathway for a registered patient (extension may be unset on legacy records). */
+export async function fhirGetPatientKioskPathway(patientId: string): Promise<KioskIntakePathway | null> {
+  const bundle = await fhir.search<Bundle<Basic>>('Basic', {
+    subject: `Patient/${patientId}`,
+    code: `${KIOSK_RECORD_TYPE_SYSTEM}|${KIOSK_RECORD_TYPE.intake}`,
+    _count: 50,
+    _sort: '-_lastUpdated',
+  });
+  for (const basic of splitBasics(bundle)) {
+    const lead = parseIntakeLead(basic);
+    if (lead?.pathway) return lead.pathway;
+  }
+  return null;
 }
 
 export async function fhirListPendingKioskIntakes(): Promise<KioskIntakeLead[]> {
   const basics = await listBasicsByRecordType(KIOSK_RECORD_TYPE.intake);
   return basics
-    .map(b => payloadFromBasic<KioskIntakeLead>(b))
+    .map(b => parseIntakeLead(b))
     .filter((l): l is KioskIntakeLead => Boolean(l))
     .filter(l => l.status === 'pending-registration')
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
@@ -115,7 +139,7 @@ export async function fhirMarkKioskIntakeRegistered(
 ): Promise<void> {
   const existing = await findBasicByRecordId(id);
   if (!existing?.id) return;
-  const lead = payloadFromBasic<KioskIntakeLead>(existing);
+  const lead = parseIntakeLead(existing);
   if (!lead) return;
   const updated: KioskIntakeLead = {
     ...lead,

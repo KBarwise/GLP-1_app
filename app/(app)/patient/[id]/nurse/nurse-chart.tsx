@@ -241,13 +241,7 @@ export function NurseChart({
     if (!isLastStep) setTab(NURSE_CHART_TAB_ORDER[tabIndex + 1]!);
   }
 
-  function onSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!isLastStep) {
-      void goNext();
-      return;
-    }
-
+  function completeAndSendToDoctor() {
     setResult(null);
     startTransition(async () => {
       try {
@@ -284,6 +278,18 @@ export function NurseChart({
     });
   }
 
+  function blockImplicitFormSubmit(e: React.FormEvent) {
+    e.preventDefault();
+  }
+
+  function blockEnterSubmit(e: React.KeyboardEvent<HTMLFormElement>) {
+    if (e.key !== 'Enter') return;
+    const target = e.target;
+    if (!(target instanceof HTMLElement)) return;
+    if (target.tagName === 'TEXTAREA') return;
+    e.preventDefault();
+  }
+
   const autosaveHint =
     autosaveStatus === 'saving'
       ? 'Saving to FHIR…'
@@ -296,7 +302,12 @@ export function NurseChart({
             : 'Enter values to start autosave';
 
   return (
-    <form onSubmit={onSubmit} noValidate className="space-y-4 text-[13px]">
+    <form
+      onSubmit={blockImplicitFormSubmit}
+      onKeyDown={blockEnterSubmit}
+      noValidate
+      className="space-y-4 text-[13px]"
+    >
       <div className="flex items-center justify-between gap-3 mb-1">
         <p className="text-[12px] text-ink-500">
           Step {tabIndex + 1} of {NURSE_CHART_TABS.length}
@@ -578,11 +589,12 @@ export function NurseChart({
             </button>
           ) : (
             <button
-              type="submit"
+              type="button"
               disabled={pending}
+              onClick={() => completeAndSendToDoctor()}
               className="px-4 py-2 bg-ink-900 text-white text-[12px] rounded-md hover:bg-ink-700 disabled:opacity-50"
             >
-              {pending ? 'Saving…' : 'Complete documentation'}
+              {pending ? 'Sending…' : 'Complete and send to doctor'}
             </button>
           )}
         </div>

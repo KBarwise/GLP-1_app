@@ -32,7 +32,7 @@ export function patientDestination(role: ActingRole, patientId: string): string 
     case 'nurse':
       return `/patient/${patientId}`;
     case 'doctor':
-      return `/patient/${patientId}`;
+      return `/patient/${patientId}/consult/document`;
     case 'reception':
     case 'admin':
       return `/register/${patientId}`;

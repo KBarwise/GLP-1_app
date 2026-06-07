@@ -13,9 +13,9 @@ import {
   readClinicNameFromDocumentCookie,
   writeClinicNameDocumentCookie,
 } from '@/lib/clinic/clinic-name-cookie';
+import { PRODUCT_FULL_NAME, DEFAULT_CLINIC_NAME } from '@/lib/clinic/branding';
 import {
   ACTING_ROLES,
-  DEFAULT_CLINIC_NAME,
   STORAGE_KEYS,
   type ActingRole,
 } from '@/lib/clinic/roles';
@@ -101,13 +101,12 @@ export function ClinicProvider({
     setRole,
     clinicName,
     setClinicName,
-    productSubtitle: 'Lucea Data · GLP-1 monitor',
+    productSubtitle: PRODUCT_FULL_NAME,
     homePath: homePathForRole(role),
     roles: ACTING_ROLES,
     ready,
   }), [role, setRole, clinicName, setClinicName, ready]);
 
-  // Always mount children so client boundaries (e.g. AppointmentQueue) hydrate correctly.
   return <ClinicContext.Provider value={value}>{children}</ClinicContext.Provider>;
 }
 

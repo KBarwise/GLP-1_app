@@ -51,9 +51,11 @@ function toRow(condition: Condition): RowState | null {
 export function EditableProblemList({
   patientId,
   problems,
+  embedded = false,
 }: {
   patientId: string;
   problems: Condition[];
+  embedded?: boolean;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -146,10 +148,8 @@ export function EditableProblemList({
     });
   }
 
-  return (
-    <Card className="mb-3">
-      <CardTitle icon={<ListTree className="h-4 w-4" />}>Problem list</CardTitle>
-
+  const inner = (
+    <>
       {rows.length === 0 && !draftAdd ? (
         <p className="text-[13px] text-ink-500 py-2">No problems on record.</p>
       ) : (
@@ -260,6 +260,15 @@ export function EditableProblemList({
           {error}
         </p>
       )}
+    </>
+  );
+
+  if (embedded) return <div className="text-[13px]">{inner}</div>;
+
+  return (
+    <Card className="mb-3">
+      <CardTitle icon={<ListTree className="h-4 w-4" />}>Problem list</CardTitle>
+      {inner}
     </Card>
   );
 }

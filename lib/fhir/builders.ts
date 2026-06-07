@@ -326,11 +326,24 @@ export const buildPractitioner = (args: {
   family: string;
   given: string;
   npi?: string;
-  role: string;
+  role: 'doctor' | 'nurse' | 'reception' | 'admin';
   phone?: string;
   email?: string;
   active?: boolean;
 }): Practitioner => {
+  const roleQualification = (() => {
+    if (args.role === 'doctor') {
+      return { code: 'MD', display: 'Doctor of Medicine', text: 'Physician' };
+    }
+    if (args.role === 'nurse') {
+      return { code: 'RN', display: 'Registered Nurse', text: 'Registered nurse' };
+    }
+    if (args.role === 'reception') {
+      return { code: 'RECP', display: 'Reception staff', text: 'Reception staff' };
+    }
+    return { code: 'ADMIN', display: 'Administrative staff', text: 'Administrative staff' };
+  })();
+
   const given = args.given.trim().split(/\s+/).filter(Boolean);
   return {
     resourceType: 'Practitioner',
@@ -355,10 +368,10 @@ export const buildPractitioner = (args: {
       code: {
         coding: [{
           system: 'http://terminology.hl7.org/CodeSystem/v2-0360',
-          code: args.role === 'doctor' ? 'MD' : 'RN',
-          display: args.role === 'doctor' ? 'Doctor of Medicine' : 'Registered Nurse',
+          code: roleQualification.code,
+          display: roleQualification.display,
         }],
-        text: args.role === 'doctor' ? 'Physician' : 'Registered nurse',
+        text: roleQualification.text,
       },
     }],
   };

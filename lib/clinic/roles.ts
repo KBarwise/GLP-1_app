@@ -8,7 +8,7 @@ export const ACTING_ROLES: Array<{ id: ActingRole; label: string; description: s
   { id: 'patient', label: 'Patient (kiosk)', description: 'Pre-screening check-in only' },
 ];
 
-export const DEFAULT_CLINIC_NAME = 'GLP-1 Safety Clinic';
+export { DEFAULT_CLINIC_NAME } from './branding';
 
 export const STORAGE_KEYS = {
   role: 'glp1-acting-role',

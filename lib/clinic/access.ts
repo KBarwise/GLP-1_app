@@ -48,6 +48,10 @@ export function receptionBookPatientUrl(patientId: string, patientName: string):
   return `/reception/book?${q.toString()}`;
 }
 
+export function canBookAppointments(role: ActingRole): boolean {
+  return role === 'reception' || role === 'admin';
+}
+
 const CLINICAL_PREFIXES = ['/prescribe', '/cohort'];
 
 export function roleAllowsPath(role: ActingRole, pathname: string): boolean {

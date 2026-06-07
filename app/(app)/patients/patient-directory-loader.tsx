@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { initials } from '@/lib/utils';
 import { useClinic } from '@/components/clinic/clinic-context';
-import { canEditDemographics, patientDestination } from '@/lib/clinic/access';
+import { canEditDemographics, canBookAppointments, patientDestination, receptionBookPatientUrl } from '@/lib/clinic/access';
 
 type Row = {
   id: string;
@@ -19,6 +19,7 @@ type Row = {
 export function PatientDirectoryLoader() {
   const { role } = useClinic();
   const canEdit = canEditDemographics(role);
+  const canBook = canBookAppointments(role);
   const [rows, setRows] = useState<Row[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [truncated, setTruncated] = useState(false);
@@ -70,7 +71,15 @@ export function PatientDirectoryLoader() {
               </td>
               <td className="py-2.5 font-mono text-[12px] text-ink-500">{p.mrn ?? '–'}</td>
               <td className="py-2.5 text-ink-500">{p.birthDate ?? '–'}</td>
-              <td className="py-2.5 text-right space-x-2">
+              <td className="py-2.5 text-right space-x-2 whitespace-nowrap">
+                {canBook && (
+                  <Link
+                    href={receptionBookPatientUrl(p.id, p.name)}
+                    className="text-accent text-[12px] font-medium"
+                  >
+                    Book
+                  </Link>
+                )}
                 {canEdit && (
                   <Link href={`/register/${p.id}`} className="text-ink-500 text-[12px]">Edit</Link>
                 )}

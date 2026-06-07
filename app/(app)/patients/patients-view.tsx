@@ -8,7 +8,7 @@ import { PatientDirectoryLoader } from './patient-directory-loader';
 import { Search, Shield } from 'lucide-react';
 import { fullName, ageFromBirthDate, initials } from '@/lib/utils';
 import { useClinic } from '@/components/clinic/clinic-context';
-import { canEditDemographics, patientDestination } from '@/lib/clinic/access';
+import { canEditDemographics, canBookAppointments, patientDestination, receptionBookPatientUrl } from '@/lib/clinic/access';
 
 function patientMrn(p: Patient) {
   return (
@@ -20,6 +20,7 @@ function patientMrn(p: Patient) {
 function PatientTable({ patients }: { patients: Patient[] }) {
   const { role } = useClinic();
   const canEdit = canEditDemographics(role);
+  const canBook = canBookAppointments(role);
 
   return (
     <table className="w-full text-[13px]">
@@ -57,6 +58,14 @@ function PatientTable({ patients }: { patients: Patient[] }) {
               <td className="py-2.5 font-mono text-[12px] text-ink-500">{mrn ?? '–'}</td>
               <td className="py-2.5 text-ink-500">{p.birthDate ?? '–'}</td>
               <td className="py-2.5 text-right space-x-2 whitespace-nowrap">
+                {canBook && p.id && (
+                  <Link
+                    href={receptionBookPatientUrl(p.id, name)}
+                    className="text-accent text-[12px] font-medium"
+                  >
+                    Book
+                  </Link>
+                )}
                 {canEdit && p.id && (
                   <Link href={`/register/${p.id}`} className="text-ink-500 text-[12px]">Edit demographics</Link>
                 )}

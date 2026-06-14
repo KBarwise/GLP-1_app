@@ -26,6 +26,9 @@ export default async function DoctorClinicPage({
       <h1 className="text-xl font-medium mb-1">Doctor&apos;s Queue</h1>
       <p className="text-sm text-ink-500 mb-4">
         Start opens the patient chart. Use Documentation when you are ready to write the consultation note.
+        Open any module directly from{' '}
+        <a href="/clinic/care-modules" className="text-brand-600 underline">Care modules</a>
+        {' '}or switch tabs on a patient chart.
       </p>
       <Card>
         <CardTitle icon={<UserRound className="h-4 w-4" />}>Doctor&apos;s Queue — {date}</CardTitle>

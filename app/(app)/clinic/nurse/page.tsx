@@ -26,6 +26,9 @@ export default async function NurseClinicPage({
       <h1 className="text-xl font-medium mb-1">Nurse Queue</h1>
       <p className="text-sm text-ink-500 mb-4">
         Vitals, anthropometrics, point-of-care tests, and nursing notes. Send to the doctor when complete.
+        Open any module from{' '}
+        <a href="/clinic/care-modules" className="text-brand-600 underline">Care modules</a>
+        {' '}or use the tabs on a patient chart.
       </p>
       <Card>
         <CardTitle icon={<Stethoscope className="h-4 w-4" />}>Nurse Queue — {date}</CardTitle>

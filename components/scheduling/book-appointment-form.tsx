@@ -3,8 +3,7 @@
 import { useEffect, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { bookAppointment } from '@/app/(app)/scheduling/actions';
-import type { ClinicRole } from '@/lib/clinical/scheduling';
-import { CLINIC_ROLES } from '@/lib/clinical/scheduling';
+import { CARE_MODULE_LIST, type CareModuleId } from '@/lib/ehr/care-modules';
 
 type PatientHit = { id: string; name: string; mrn?: string };
 
@@ -23,7 +22,7 @@ export function BookAppointmentForm({
   const [query, setQuery] = useState('');
   const [hits, setHits] = useState<PatientHit[]>([]);
   const [selected, setSelected] = useState<PatientHit | null>(initialPatient ?? null);
-  const [clinicRole, setClinicRole] = useState<ClinicRole>('nurse');
+  const [careModuleId, setCareModuleId] = useState<CareModuleId>('primary-care');
   const [start, setStart] = useState(`${defaultDate}T09:00`);
   const [error, setError] = useState<string | null>(null);
 
@@ -56,7 +55,7 @@ export function BookAppointmentForm({
         await bookAppointment({
           patientId: selected.id,
           patientName: selected.name,
-          clinicRole,
+          careModuleId,
           start: new Date(start).toISOString(),
         });
         setQuery('');
@@ -112,14 +111,17 @@ export function BookAppointmentForm({
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="block text-xs text-ink-500 mb-1">Clinic</label>
+          <label className="block text-xs text-ink-500 mb-1">Care module</label>
           <select
-            value={clinicRole}
-            onChange={e => setClinicRole(e.target.value as ClinicRole)}
+            value={careModuleId}
+            onChange={e => setCareModuleId(e.target.value as CareModuleId)}
             className="w-full px-3 py-2 border border-ink-100 rounded-md"
           >
-            <option value="nurse">{CLINIC_ROLES.nurse.display}</option>
-            <option value="doctor">{CLINIC_ROLES.doctor.display}</option>
+            {CARE_MODULE_LIST.map(mod => (
+              <option key={mod.id} value={mod.id}>
+                {mod.label}
+              </option>
+            ))}
           </select>
         </div>
         <div>

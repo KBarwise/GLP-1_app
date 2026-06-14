@@ -10,6 +10,7 @@ import { DoctorChartLayout } from '@/components/patient/doctor-chart-layout';
 import { DoctorPatientOverview } from '@/components/patient/doctor-patient-overview';
 import { ConsultChart } from '../consult-chart';
 import { ClipboardList } from 'lucide-react';
+import { CareModuleBadge } from '@/components/care/care-module-badge';
 
 export const dynamic = 'force-dynamic';
 
@@ -38,6 +39,7 @@ export default async function ConsultDocumentPage({
 
   return (
     <DoctorChartLayout patientId={params.id} observations={ctx.observations}>
+      <CareModuleBadge moduleId="primary-care" />
       <DoctorPatientOverview patientId={params.id} ctx={ctx} />
 
       <Card className="p-4">

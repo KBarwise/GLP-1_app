@@ -3,6 +3,7 @@ import { Card, CardTitle } from '@/components/ui/primitives';
 import { loadPatientContext } from '@/lib/patient/load-patient-context';
 import { NurseChart } from './nurse-chart';
 import { Stethoscope } from 'lucide-react';
+import { CareModuleBadge } from '@/components/care/care-module-badge';
 import { isPregnancyApplicable } from '@/lib/clinical/pregnancy';
 import { consultMedicationsFromRequests } from '@/lib/clinical/medications';
 
@@ -24,6 +25,7 @@ export default async function NursePage({
 
   return (
     <div className="max-w-4xl">
+      <CareModuleBadge moduleId="nursing-vitals" />
       <Card>
         <CardTitle icon={<Stethoscope className="h-4 w-4" />}>Nurse documentation</CardTitle>
         <p className="text-[12px] text-ink-500 mb-4">

@@ -282,6 +282,7 @@ export function ConsultChart({
       try {
         await submitConsultation({
           patientId,
+          careModuleId: 'primary-care',
           reason: form.reason.trim(),
           symptomCodes: form.symptoms,
           symptomLabels,

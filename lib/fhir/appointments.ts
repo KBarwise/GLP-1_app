@@ -1,7 +1,12 @@
 import { fhir } from './client';
 import type { Appointment, Bundle, Patient } from './resources';
-import { buildAppointment } from './builders';
+import { buildCareModuleAppointment } from './builders';
 import { clinicRoleFromAppointment, todayDateParam, type ClinicRole } from '../clinical/scheduling';
+import {
+  careModuleFromAppointment,
+  careModuleForClinicRole,
+  type CareModuleId,
+} from '../ehr/care-modules';
 import {
   workflowFromAppointment,
   withWorkflow,
@@ -16,6 +21,7 @@ export type AppointmentRow = {
   patientName: string;
   patientMrn?: string;
   clinicRole: ClinicRole | null;
+  careModuleId: CareModuleId | null;
   workflow: VisitWorkflow;
 };
 
@@ -105,6 +111,7 @@ export function toAppointmentRow(a: Appointment, patients: Map<string, Patient>)
     patientName: patient ? fullName(patient) : a.participant?.[0]?.actor?.display ?? 'Unknown patient',
     patientMrn: getPatientMrn(patient),
     clinicRole: clinicRoleFromAppointment(a.appointmentType),
+    careModuleId: careModuleFromAppointment(a),
     workflow: workflowFromAppointment(a),
   };
 }
@@ -154,6 +161,19 @@ export async function createAppointment(args: {
   start: string;
   description?: string;
 }): Promise<Appointment> {
+  return createCareModuleAppointment({
+    ...args,
+    careModuleId: careModuleForClinicRole(args.clinicRole),
+  });
+}
+
+export async function createCareModuleAppointment(args: {
+  patientId: string;
+  patientName?: string;
+  careModuleId: CareModuleId;
+  start: string;
+  description?: string;
+}): Promise<Appointment> {
   const normalizedStart = new Date(args.start).toISOString();
   const date = localDateParamFromIso(normalizedStart);
   const patient = await fhir.read<Patient>('Patient', args.patientId);
@@ -172,7 +192,7 @@ export async function createAppointment(args: {
     throw new Error('This patient already has an active appointment on the board for this day.');
   }
 
-  const resource = buildAppointment({ ...args, start: normalizedStart });
+  const resource = buildCareModuleAppointment({ ...args, start: normalizedStart });
   return fhir.create<Appointment>('Appointment', resource);
 }
 

@@ -141,16 +141,18 @@ Copy values from your local `.env.local` file (open it in Cursor or TextEdit).
 
 | Name | Example value | Notes |
 |------|---------------|--------|
-| `FHIR_BASE_URL` | `https://hapi.lucea.health/fhir` | Must match what works locally |
+| `FHIR_BASE_URL` | `https://term.codemuseai.com/fhir` | CodeMuse HAPI FHIR R4 server |
 
 **Optional (add if you use them locally):**
 
 | Name | Notes |
 |------|--------|
 | `FHIR_BEARER_TOKEN` | Only if your FHIR server needs auth |
-| `TERMINOLOGY_ECL_BASE_URL` | SNOMED / ECL expand |
-| `TERMINOLOGY_BASE_URL` | Terminology validate/lookup |
+| `TERMINOLOGY_ECL_BASE_URL` | SNOMED / ECL expand (default: `https://term.codemuseai.com/fhir`) |
+| `TERMINOLOGY_BASE_URL` | Terminology validate/lookup (default: `https://term.codemuseai.com/fhir`) |
 | `TERMINOLOGY_AUTH_HEADER` | If terminology needs auth |
+| `EHRBASE_BASE_URL` | EHRbase openEHR server (default: `https://ehrbase.codemuseai.com/ehrbase`) |
+| `EHRBASE_AUTH_HEADER` | If EHRbase needs auth |
 | `APP_ORIGIN` | Your Vercel URL, e.g. `https://glp1-monitor.vercel.app` |
 
 For each variable:

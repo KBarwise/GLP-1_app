@@ -20,6 +20,7 @@ const ICONS: Record<string, string> = {
   '/reception': '⌁',
   '/reception/book': '◷',
   '/clinic/nurse': '✚',
+  '/clinic/care-modules': '◫',
   '/clinic/doctor': '◎',
   '/clinic/doctor/risk': '⚠',
   '/admin/settings': '⚙',

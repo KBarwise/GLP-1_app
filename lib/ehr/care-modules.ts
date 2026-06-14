@@ -190,3 +190,12 @@ export function resolveDocumentationHref(
   }
   return careModuleDocumentationHref(patientId, resolved, appointmentId);
 }
+
+/** Care modules the acting role may open for documentation. */
+export function careModulesForRole(role: ActingRole): CareModuleDef[] {
+  return CARE_MODULE_LIST.filter(mod => mod.roles.includes(role));
+}
+
+export function careModulePatientHref(patientId: string, moduleId: CareModuleId): string {
+  return resolveDocumentationHref(patientId, moduleId);
+}

@@ -34,9 +34,14 @@ import {
   medicationSnomedCode,
 } from '@/lib/clinical/medications';
 import type { Bundle, Condition, MedicationRequest, Observation } from '@/lib/fhir/resources';
+import {
+  getCareModuleTemplateId,
+  type CareModuleId,
+} from '@/lib/ehr/care-modules';
 
 export type NurseChartInput = {
   patientId: string;
+  careModuleId?: CareModuleId;
   vitals: Record<string, string>;
   anthropometrics: Record<string, string>;
   /** Full height/weight for BMI when only one anthropometric changed in this batch. */
@@ -70,9 +75,15 @@ function revalidatePatient(patientId: string) {
   revalidatePath(`/patient/${patientId}/nurse`);
   revalidatePath(`/patient/${patientId}/consult`);
   revalidatePath(`/patient/${patientId}/consult/document`);
+  revalidatePath(`/patient/${patientId}/care/primary-care`);
+  revalidatePath(`/patient/${patientId}/care/nursing-vitals`);
+  revalidatePath(`/patient/${patientId}/care/antenatal`);
+  revalidatePath(`/patient/${patientId}/care/gynaecology`);
+  revalidatePath(`/patient/${patientId}/care/lab-request`);
 }
 
 async function writeNurseChartObservations(args: NurseChartInput): Promise<number> {
+  const templateId = getCareModuleTemplateId(args.careModuleId ?? 'nursing-vitals');
   const created: Observation[] = [];
   let heightCm = args.bmiContext?.heightCm;
   let weightKg = args.bmiContext?.weightKg;
@@ -89,6 +100,7 @@ async function writeNurseChartObservations(args: NurseChartInput): Promise<numbe
       value: v,
       unit: def.unit,
       category: 'vital-signs',
+      openEhrTemplateId: templateId,
     }));
     created.push(obs);
   }
@@ -108,6 +120,7 @@ async function writeNurseChartObservations(args: NurseChartInput): Promise<numbe
       value: v,
       unit: def.unit,
       category: 'vital-signs',
+      openEhrTemplateId: templateId,
     }));
     created.push(obs);
   }
@@ -122,6 +135,7 @@ async function writeNurseChartObservations(args: NurseChartInput): Promise<numbe
         value: Math.round(bmi * 100) / 100,
         unit: 'kg/m2',
         category: 'vital-signs',
+        openEhrTemplateId: templateId,
       }));
       created.push(obs);
     }
@@ -133,6 +147,7 @@ async function writeNurseChartObservations(args: NurseChartInput): Promise<numbe
       loinc: '81025-3',
       display: 'Pregnancy test',
       result: args.poc.pregnancy,
+      openEhrTemplateId: templateId,
     }));
     created.push(obs);
   }
@@ -147,6 +162,7 @@ async function writeNurseChartObservations(args: NurseChartInput): Promise<numbe
         value: Math.round(glucoseMgDl * 100) / 100,
         unit: 'mg/dL',
         category: 'laboratory',
+        openEhrTemplateId: templateId,
       }));
       created.push(obs);
     }
@@ -161,6 +177,7 @@ async function writeNurseChartObservations(args: NurseChartInput): Promise<numbe
         loinc: field.loinc,
         display: field.display,
         result,
+        openEhrTemplateId: templateId,
       }));
       created.push(obs);
     }
@@ -173,6 +190,7 @@ async function writeNurseChartObservations(args: NurseChartInput): Promise<numbe
       display: 'Nursing note',
       value: args.note.trim(),
       category: 'survey',
+      openEhrTemplateId: templateId,
     }));
     created.push(obs);
   }
@@ -315,8 +333,10 @@ export async function submitNurseChart(args: NurseChartInput & { note: string })
 export async function commitLabImport(
   patientId: string,
   rows: LabImportRow[],
+  careModuleId: CareModuleId = 'lab-request',
 ): Promise<{ created: number }> {
   assertClinicalWrite();
+  const templateId = getCareModuleTemplateId(careModuleId);
   let created = 0;
 
   for (const row of rows) {
@@ -327,6 +347,7 @@ export async function commitLabImport(
       value: Math.round(row.value * 100) / 100,
       unit: row.unit,
       category: 'laboratory',
+      openEhrTemplateId: templateId,
     }));
     created += 1;
   }
@@ -344,6 +365,7 @@ const PRESCRIBE_AGENTS: Record<string, { display: string }> = {
 
 export async function submitConsultation(args: {
   patientId: string;
+  careModuleId?: CareModuleId;
   reason: string;
   symptomCodes: string[];
   symptomLabels: Record<string, string>;
@@ -360,6 +382,7 @@ export async function submitConsultation(args: {
   labPanels: string[];
 }): Promise<{ encounterId?: string; resources: number }> {
   assertClinicalWrite();
+  const templateId = getCareModuleTemplateId(args.careModuleId ?? 'primary-care');
   let count = 0;
 
   const condBundle = await clinicalFhir.search<Bundle<Condition>>('Condition', {
@@ -412,6 +435,7 @@ export async function submitConsultation(args: {
   const encounter = await clinicalFhir.create('Encounter', buildEncounter({
     patientId: args.patientId,
     reason: args.reason,
+    openEhrTemplateId: templateId,
   }));
   const encounterId = (encounter as { id?: string }).id;
   count += 1;
@@ -497,6 +521,7 @@ export async function submitConsultation(args: {
       loinc: panel.code,
       display: panel.codingDisplay,
       encounterId,
+      openEhrTemplateId: templateId,
     }));
     count += 1;
   }

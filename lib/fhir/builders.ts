@@ -10,6 +10,12 @@ import type {
   CodeableConcept,
   Reference,
 } from './resources';
+import {
+  CARE_MODULE_EXTENSION_URL,
+  getCareModule,
+  type CareModuleId,
+} from '../ehr/care-modules';
+import { withOpenEhrTemplate } from '../ehr/openehr-template';
 import { APPOINTMENT_TYPE_SYSTEM, CLINIC_ROLES, type ClinicRole } from '../clinical/scheduling';
 import { withWorkflow, type VisitWorkflow } from '../clinical/workflow';
 
@@ -133,25 +139,29 @@ export const buildObservation = (args: {
   unit: string;
   effective?: string;
   category?: 'laboratory' | 'vital-signs' | 'survey';
-}): Observation => ({
-  resourceType: 'Observation',
-  status: 'final',
-  category: [{
-    coding: [{
-      system: 'http://terminology.hl7.org/CodeSystem/observation-category',
-      code: args.category ?? 'laboratory',
+  openEhrTemplateId?: string;
+}): Observation => {
+  const obs: Observation = {
+    resourceType: 'Observation',
+    status: 'final',
+    category: [{
+      coding: [{
+        system: 'http://terminology.hl7.org/CodeSystem/observation-category',
+        code: args.category ?? 'laboratory',
+      }],
     }],
-  }],
-  code: args.code,
-  subject: patientRef(args.patientId),
-  effectiveDateTime: args.effective ?? new Date().toISOString(),
-  valueQuantity: {
-    value: args.value,
-    unit: args.unit,
-    system: 'http://unitsofmeasure.org',
-    code: args.unit,
-  },
-});
+    code: args.code,
+    subject: patientRef(args.patientId),
+    effectiveDateTime: args.effective ?? new Date().toISOString(),
+    valueQuantity: {
+      value: args.value,
+      unit: args.unit,
+      system: 'http://unitsofmeasure.org',
+      code: args.unit,
+    },
+  };
+  return args.openEhrTemplateId ? withOpenEhrTemplate(obs, args.openEhrTemplateId) : obs;
+};
 
 export const buildObservationString = (args: {
   patientId: string;
@@ -159,40 +169,48 @@ export const buildObservationString = (args: {
   display: string;
   value: string;
   category?: 'laboratory' | 'vital-signs' | 'survey';
-}): Observation => ({
-  resourceType: 'Observation',
-  status: 'final',
-  category: [{
-    coding: [{
-      system: 'http://terminology.hl7.org/CodeSystem/observation-category',
-      code: args.category ?? 'survey',
+  openEhrTemplateId?: string;
+}): Observation => {
+  const obs: Observation = {
+    resourceType: 'Observation',
+    status: 'final',
+    category: [{
+      coding: [{
+        system: 'http://terminology.hl7.org/CodeSystem/observation-category',
+        code: args.category ?? 'survey',
+      }],
     }],
-  }],
-  code: loinc(args.loinc, args.display),
-  subject: patientRef(args.patientId),
-  effectiveDateTime: new Date().toISOString(),
-  valueString: args.value,
-});
+    code: loinc(args.loinc, args.display),
+    subject: patientRef(args.patientId),
+    effectiveDateTime: new Date().toISOString(),
+    valueString: args.value,
+  };
+  return args.openEhrTemplateId ? withOpenEhrTemplate(obs, args.openEhrTemplateId) : obs;
+};
 
 export const buildObservationCoded = (args: {
   patientId: string;
   loinc: string;
   display: string;
   result: string;
-}): Observation => ({
-  resourceType: 'Observation',
-  status: 'final',
-  category: [{
-    coding: [{
-      system: 'http://terminology.hl7.org/CodeSystem/observation-category',
-      code: 'laboratory',
+  openEhrTemplateId?: string;
+}): Observation => {
+  const obs: Observation = {
+    resourceType: 'Observation',
+    status: 'final',
+    category: [{
+      coding: [{
+        system: 'http://terminology.hl7.org/CodeSystem/observation-category',
+        code: 'laboratory',
+      }],
     }],
-  }],
-  code: loinc(args.loinc, args.display),
-  subject: patientRef(args.patientId),
-  effectiveDateTime: new Date().toISOString(),
-  valueCodeableConcept: { text: args.result },
-});
+    code: loinc(args.loinc, args.display),
+    subject: patientRef(args.patientId),
+    effectiveDateTime: new Date().toISOString(),
+    valueCodeableConcept: { text: args.result },
+  };
+  return args.openEhrTemplateId ? withOpenEhrTemplate(obs, args.openEhrTemplateId) : obs;
+};
 
 const CONDITION_CLINICAL_SYSTEM = 'http://terminology.hl7.org/CodeSystem/condition-clinical';
 const CONDITION_VERIFICATION_SYSTEM = 'http://terminology.hl7.org/CodeSystem/condition-ver-status';
@@ -259,18 +277,22 @@ export function applyConditionQualifiers(
 export const buildEncounter = (args: {
   patientId: string;
   reason: string;
-}): Encounter => ({
-  resourceType: 'Encounter',
-  status: 'finished',
-  class: {
-    system: 'http://terminology.hl7.org/CodeSystem/v3-ActCode',
-    code: 'AMB',
-    display: 'ambulatory',
-  },
-  subject: patientRef(args.patientId),
-  period: { start: new Date().toISOString() },
-  reasonCode: [{ text: args.reason }],
-});
+  openEhrTemplateId?: string;
+}): Encounter => {
+  const enc: Encounter = {
+    resourceType: 'Encounter',
+    status: 'finished',
+    class: {
+      system: 'http://terminology.hl7.org/CodeSystem/v3-ActCode',
+      code: 'AMB',
+      display: 'ambulatory',
+    },
+    subject: patientRef(args.patientId),
+    period: { start: new Date().toISOString() },
+    reasonCode: [{ text: args.reason }],
+  };
+  return args.openEhrTemplateId ? withOpenEhrTemplate(enc, args.openEhrTemplateId) : enc;
+};
 
 export const buildAppointment = (args: {
   patientId: string;
@@ -367,12 +389,55 @@ export const buildServiceRequest = (args: {
   loinc: string;
   display: string;
   encounterId?: string;
-}): ServiceRequest => ({
-  resourceType: 'ServiceRequest',
-  status: 'active',
-  intent: 'order',
-  code: loinc(args.loinc, args.display),
-  subject: patientRef(args.patientId),
-  authoredOn: new Date().toISOString(),
-  ...(args.encounterId && { encounter: { reference: `Encounter/${args.encounterId}` } }),
-});
+  openEhrTemplateId?: string;
+}): ServiceRequest => {
+  const sr: ServiceRequest = {
+    resourceType: 'ServiceRequest',
+    status: 'active',
+    intent: 'order',
+    code: loinc(args.loinc, args.display),
+    subject: patientRef(args.patientId),
+    authoredOn: new Date().toISOString(),
+    ...(args.encounterId && { encounter: { reference: `Encounter/${args.encounterId}` } }),
+  };
+  return args.openEhrTemplateId ? withOpenEhrTemplate(sr, args.openEhrTemplateId) : sr;
+};
+
+export const buildCareModuleAppointment = (args: {
+  patientId: string;
+  patientName?: string;
+  careModuleId: CareModuleId;
+  start: string;
+  description?: string;
+  workflow?: VisitWorkflow;
+}): Appointment => {
+  const mod = getCareModule(args.careModuleId);
+  const start = new Date(args.start);
+  const end = new Date(start.getTime() + mod.durationMinutes * 60_000);
+  const base: Appointment = {
+    resourceType: 'Appointment',
+    status: 'booked',
+    appointmentType: {
+      coding: [{
+        system: APPOINTMENT_TYPE_SYSTEM,
+        code: mod.appointmentTypeCode,
+        display: mod.appointmentTypeDisplay,
+      }],
+      text: mod.appointmentTypeDisplay,
+    },
+    description: args.description,
+    start: start.toISOString(),
+    end: end.toISOString(),
+    created: new Date().toISOString(),
+    participant: [{
+      actor: patientRef(args.patientId, args.patientName),
+      status: 'accepted',
+      required: 'required',
+    }],
+    extension: [{
+      url: CARE_MODULE_EXTENSION_URL,
+      valueCode: args.careModuleId,
+    }],
+  };
+  return withWorkflow(base, args.workflow ?? 'scheduled');
+};

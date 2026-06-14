@@ -192,6 +192,7 @@ export function NurseChart({
       try {
         const saved = await persistNurseChartDraft({
           patientId,
+          careModuleId: 'nursing-vitals',
           vitals: diff.vitals,
           anthropometrics: diff.anthropometrics,
           bmiContext: {
@@ -250,6 +251,7 @@ export function NurseChart({
         if (diff.hasChanges) {
           await persistNurseChartDraft({
             patientId,
+            careModuleId: 'nursing-vitals',
             vitals: diff.vitals,
             anthropometrics: diff.anthropometrics,
             bmiContext: {

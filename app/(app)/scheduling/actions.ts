@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import {
   createAppointment,
+  createCareModuleAppointment,
   findAnyActiveAppointmentForPatient,
   findActiveDoctorAppointmentForPatient,
   findActiveNurseAppointmentForPatient,
@@ -12,6 +13,7 @@ import {
 import { canViewClinicalData } from '@/lib/clinic/access';
 import { getActingRoleFromCookie } from '@/lib/clinic/server-role';
 import type { ClinicRole } from '@/lib/clinical/scheduling';
+import type { CareModuleId } from '@/lib/ehr/care-modules';
 import type { VisitWorkflow } from '@/lib/clinical/workflow';
 import type { Appointment } from '@/lib/fhir/resources';
 
@@ -24,7 +26,8 @@ function revalidateScheduling() {
 export async function bookAppointment(args: {
   patientId: string;
   patientName?: string;
-  clinicRole: ClinicRole;
+  clinicRole?: ClinicRole;
+  careModuleId?: CareModuleId;
   start: string;
   description?: string;
 }): Promise<Appointment> {
@@ -35,7 +38,15 @@ export async function bookAppointment(args: {
     throw new Error('This patient is already on the appointment board for that day.');
   }
 
-  const created = await createAppointment(args);
+  const created = args.careModuleId
+    ? await createCareModuleAppointment({ ...args, careModuleId: args.careModuleId, start: normalizedStart })
+    : await createAppointment({
+        patientId: args.patientId,
+        patientName: args.patientName,
+        clinicRole: args.clinicRole ?? 'nurse',
+        start: normalizedStart,
+        description: args.description,
+      });
   revalidateScheduling();
   return created;
 }

@@ -15,6 +15,7 @@ import {
   probeFhirBridgeHealth,
   probeOpenFhirHealth,
 } from '@/lib/ehr/deployment-info';
+import { CareModulesPanel } from '@/components/care/care-modules-panel';
 import { Database, PlugZap, Settings } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
@@ -115,6 +116,17 @@ export default async function AdminSettingsPage() {
               </dd>
             </div>
           </dl>
+        </Card>
+      )}
+
+      {backends.separateClinicalStore && (
+        <Card className="mb-4">
+          <CardTitle>Care modules (EHRbase templates)</CardTitle>
+          <p className="text-[12px] text-ink-500 mb-3">
+            Clinical documentation routes map to openEHR templates on EHRbase. The FHIR Bridge uses
+            template extensions on written resources to select the correct composition mapper.
+          </p>
+          <CareModulesPanel />
         </Card>
       )}
 

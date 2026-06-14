@@ -9,6 +9,18 @@ export const CLINIC_ROLES: Record<ClinicRole, { code: string; display: string; m
   doctor: { code: 'doctor-clinic', display: 'Doctor consultation', minutes: 45 },
 };
 
+/** Map legacy clinic role codes and care-module appointment types to nurse/doctor queue. */
+export function clinicRoleFromAppointment(appointmentType?: { coding?: Array<{ code?: string }> }): ClinicRole | null {
+  const code = appointmentType?.coding?.[0]?.code;
+  if (!code) return null;
+  if (code === CLINIC_ROLES.nurse.code || code === 'nursing-vitals') return 'nurse';
+  if (code === CLINIC_ROLES.doctor.code) return 'doctor';
+  if (code === 'primary-care' || code === 'antenatal' || code === 'gynaecology' || code === 'lab-request') {
+    return 'doctor';
+  }
+  return null;
+}
+
 export type AppointmentStatus =
   | 'booked'
   | 'arrived'
@@ -18,13 +30,6 @@ export type AppointmentStatus =
 
 export const RECEPTION_STATUSES: AppointmentStatus[] = ['booked', 'arrived', 'noshow'];
 export const CLINIC_QUEUE_STATUSES: AppointmentStatus[] = ['arrived', 'booked'];
-
-export function clinicRoleFromAppointment(appointmentType?: { coding?: Array<{ code?: string }> }): ClinicRole | null {
-  const code = appointmentType?.coding?.[0]?.code;
-  if (code === CLINIC_ROLES.nurse.code) return 'nurse';
-  if (code === CLINIC_ROLES.doctor.code) return 'doctor';
-  return null;
-}
 
 export function todayDateParam(): string {
   const d = new Date();

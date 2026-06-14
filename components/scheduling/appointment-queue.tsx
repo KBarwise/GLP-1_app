@@ -8,6 +8,10 @@ import { formatTime } from '@/lib/clinical/scheduling';
 import { WORKFLOW_LABELS, type VisitWorkflow } from '@/lib/clinical/workflow';
 import type { AppointmentRow } from '@/lib/fhir/appointments';
 import {
+  getCareModule,
+  resolveDocumentationHref,
+} from '@/lib/ehr/care-modules';
+import {
   advanceVisitWorkflow,
   checkInPatient,
   setAppointmentStatus,
@@ -27,6 +31,11 @@ function roleLabel(role: AppointmentRow['clinicRole']) {
   if (role === 'nurse') return CLINIC_ROLES.nurse.display;
   if (role === 'doctor') return CLINIC_ROLES.doctor.display;
   return 'Clinic';
+}
+
+function visitLabel(row: AppointmentRow): string {
+  if (row.careModuleId) return getCareModule(row.careModuleId).shortLabel;
+  return roleLabel(row.clinicRole);
 }
 
 export function AppointmentQueue({
@@ -72,12 +81,12 @@ function QueueRow({ row, deskRole }: { row: AppointmentRow; deskRole: ActingRole
     startTransition(() => void fn());
   }
 
-  const nurseDocHref = row.patientId
-    ? `/patient/${row.patientId}/nurse?appointment=${id}`
+  const moduleId = row.careModuleId ?? (row.clinicRole === 'nurse' ? 'nursing-vitals' : 'primary-care');
+  const documentationHref = row.patientId
+    ? resolveDocumentationHref(row.patientId, moduleId, id)
     : null;
-  const doctorConsultHref = row.patientId
-    ? `/patient/${row.patientId}/consult/document?appointment=${id}`
-    : null;
+  const isNurseModule = row.clinicRole === 'nurse';
+  const isDoctorModule = row.clinicRole === 'doctor';
 
   return (
     <tr className="border-b border-ink-100 last:border-b-0 hover:bg-ink-50">
@@ -91,7 +100,7 @@ function QueueRow({ row, deskRole }: { row: AppointmentRow; deskRole: ActingRole
           <span>{row.patientName}</span>
         )}
       </td>
-      <td className="py-2.5 text-ink-500">{roleLabel(row.clinicRole)}</td>
+      <td className="py-2.5 text-ink-500">{visitLabel(row)}</td>
       <td className="py-2.5">
         <Badge tone={workflowTone(wf)}>{WORKFLOW_LABELS[wf]}</Badge>
       </td>
@@ -115,23 +124,23 @@ function QueueRow({ row, deskRole }: { row: AppointmentRow; deskRole: ActingRole
             )}
           </>
         )}
-        {deskRole === 'nurse' && row.patientId && (
+        {deskRole === 'nurse' && row.patientId && isNurseModule && (
           <>
-            {(wf === 'waiting-nurse' || wf === 'return-nurse') && nurseDocHref && (
+            {(wf === 'waiting-nurse' || wf === 'return-nurse') && documentationHref && (
               <ActionBtn
                 disabled={pending}
                 onClick={() =>
                   run(async () => {
                     await advanceVisitWorkflow(id, 'nurse-in-progress', 'arrived');
-                    router.push(nurseDocHref);
+                    router.push(documentationHref);
                   })
                 }
               >
                 Start
               </ActionBtn>
             )}
-            {wf === 'nurse-in-progress' && nurseDocHref && (
-              <Link href={nurseDocHref} className="text-info text-[12px] px-1">
+            {wf === 'nurse-in-progress' && documentationHref && (
+              <Link href={documentationHref} className="text-info text-[12px] px-1">
                 Documentation
               </Link>
             )}
@@ -142,7 +151,7 @@ function QueueRow({ row, deskRole }: { row: AppointmentRow; deskRole: ActingRole
             )}
           </>
         )}
-        {deskRole === 'doctor' && row.patientId && doctorConsultHref && (
+        {deskRole === 'doctor' && row.patientId && isDoctorModule && documentationHref && (
           <>
             {(wf === 'ready-for-doctor' || wf === 'doctor-in-progress') && (
               <ActionBtn
@@ -152,7 +161,7 @@ function QueueRow({ row, deskRole }: { row: AppointmentRow; deskRole: ActingRole
                     if (wf === 'ready-for-doctor') {
                       await advanceVisitWorkflow(id, 'doctor-in-progress', 'arrived');
                     }
-                    router.push(doctorConsultHref);
+                    router.push(documentationHref);
                   })
                 }
               >

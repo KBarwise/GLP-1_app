@@ -91,6 +91,10 @@ export function roleAllowsPath(role: ActingRole, pathname: string): boolean {
     return role === 'nurse';
   }
 
+  if (pathname.match(/^\/patient\/[^/]+\/care\//)) {
+    return role === 'nurse' || role === 'doctor';
+  }
+
   if (pathname.match(/^\/patient\/[^/]+\/consult/)) {
     return role === 'doctor';
   }

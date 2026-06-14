@@ -89,9 +89,16 @@ export type Condition = {
   severity?: CodeableConcept;
 };
 
+export type Meta = {
+  tag?: Array<{ system?: string; code?: string; display?: string }>;
+  profile?: string[];
+};
+
 export type Observation = {
   resourceType: 'Observation';
   id?: string;
+  meta?: Meta;
+  extension?: Extension[];
   status:
     | 'registered'
     | 'preliminary'
@@ -208,6 +215,8 @@ export type ValueSet = {
 export type ServiceRequest = {
   resourceType: 'ServiceRequest';
   id?: string;
+  meta?: Meta;
+  extension?: Extension[];
   status: 'draft' | 'active' | 'on-hold' | 'revoked' | 'completed' | 'entered-in-error' | 'unknown';
   intent: 'proposal' | 'plan' | 'order' | 'original-order';
   code: CodeableConcept;
@@ -220,6 +229,8 @@ export type ServiceRequest = {
 export type Encounter = {
   resourceType: 'Encounter';
   id?: string;
+  meta?: Meta;
+  extension?: Extension[];
   status: 'planned' | 'arrived' | 'triaged' | 'in-progress' | 'onleave' | 'finished' | 'cancelled';
   class: Coding;
   subject: Reference;

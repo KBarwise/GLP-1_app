@@ -63,11 +63,13 @@ Copy from `.env.example` into `.env.local` (local) or the **Vercel project → S
 
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `FHIR_BASE_URL` | Yes | FHIR R4 base URL (e.g. `https://hapi.lucea.health/fhir`) |
+| `FHIR_BASE_URL` | Yes | FHIR R4 base URL (e.g. `https://term.codemuseai.com/fhir`) |
 | `FHIR_BEARER_TOKEN` | No | Bearer token if the FHIR server requires auth |
-| `TERMINOLOGY_ECL_BASE_URL` | No | Snowstorm ECL expand endpoint |
+| `TERMINOLOGY_ECL_BASE_URL` | No | FHIR terminology ECL expand endpoint |
 | `TERMINOLOGY_BASE_URL` | No | FHIR terminology `$validate-code` / `$lookup` |
 | `TERMINOLOGY_AUTH_HEADER` | No | Optional auth header for terminology |
+| `EHRBASE_BASE_URL` | No | EHRbase openEHR REST base URL (e.g. `https://ehrbase.codemuseai.com/ehrbase`) |
+| `EHRBASE_AUTH_HEADER` | No | Optional auth header for EHRbase |
 | `APP_ORIGIN` | No | App origin (e.g. `https://your-app.vercel.app`) |
 
 Admin can also point at a different FHIR server from **Clinic Settings** in the UI (stored in cookies).

@@ -1,4 +1,4 @@
-export type FhirServerPresetId = 'env' | 'hapi-public' | 'custom';
+export type FhirServerPresetId = 'env' | 'codemuse-fhir' | 'hapi-public' | 'custom';
 
 export type FhirServerConfig = {
   presetId: FhirServerPresetId;
@@ -25,6 +25,11 @@ export const FHIR_SERVER_PRESETS: Array<{
     description: 'Uses FHIR_BASE_URL and FHIR_BEARER_TOKEN from .env.local',
   },
   {
+    id: 'codemuse-fhir',
+    label: 'CodeMuse FHIR',
+    description: 'https://term.codemuseai.com/fhir — HAPI FHIR R4',
+  },
+  {
     id: 'hapi-public',
     label: 'HAPI public R4',
     description: 'https://hapi.fhir.org/baseR4 — no bearer token',
@@ -36,7 +41,7 @@ export const FHIR_SERVER_PRESETS: Array<{
   },
 ];
 
-const PRESET_IDS: FhirServerPresetId[] = ['env', 'hapi-public', 'custom'];
+const PRESET_IDS: FhirServerPresetId[] = ['env', 'codemuse-fhir', 'hapi-public', 'custom'];
 
 export function isFhirServerPresetId(value: string | undefined): value is FhirServerPresetId {
   return Boolean(value && PRESET_IDS.includes(value as FhirServerPresetId));
@@ -58,6 +63,13 @@ export function resolveFhirServerConfig(input: {
         label: 'Environment (.env.local)',
         baseUrl: normalizeFhirBaseUrl(process.env.FHIR_BASE_URL ?? ''),
         bearerToken: process.env.FHIR_BEARER_TOKEN ?? '',
+      };
+    case 'codemuse-fhir':
+      return {
+        presetId: 'codemuse-fhir',
+        label: 'CodeMuse FHIR',
+        baseUrl: 'https://term.codemuseai.com/fhir',
+        bearerToken: '',
       };
     case 'hapi-public':
       return {

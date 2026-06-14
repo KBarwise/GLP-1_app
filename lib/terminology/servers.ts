@@ -1,4 +1,4 @@
-export type TerminologyPresetId = 'env' | 'custom';
+export type TerminologyPresetId = 'env' | 'codemuse' | 'custom';
 
 export type TerminologyConfig = {
   presetId: TerminologyPresetId;
@@ -28,13 +28,18 @@ export const TERMINOLOGY_PRESETS: Array<{
       'Uses TERMINOLOGY_ECL_BASE_URL, TERMINOLOGY_BASE_URL, and TERMINOLOGY_AUTH_HEADER from .env.local',
   },
   {
+    id: 'codemuse',
+    label: 'CodeMuse terminology',
+    description: 'https://term.codemuseai.com/fhir — SNOMED ECL expand, validate, lookup',
+  },
+  {
     id: 'custom',
     label: 'Custom Snowstorm / FHIR terminology',
     description: 'Separate base URLs for ECL $expand and validate/lookup operations',
   },
 ];
 
-const PRESET_IDS: TerminologyPresetId[] = ['env', 'custom'];
+const PRESET_IDS: TerminologyPresetId[] = ['env', 'codemuse', 'custom'];
 
 export function isTerminologyPresetId(value: string | undefined): value is TerminologyPresetId {
   return Boolean(value && PRESET_IDS.includes(value as TerminologyPresetId));
@@ -74,6 +79,16 @@ export function resolveTerminologyConfig(input: {
         opsBaseUrl: envOpsBase(),
         authHeader: process.env.TERMINOLOGY_AUTH_HEADER?.trim() ?? '',
       };
+    case 'codemuse': {
+      const base = 'https://term.codemuseai.com/fhir';
+      return {
+        presetId: 'codemuse',
+        label: 'CodeMuse terminology',
+        eclBaseUrl: base,
+        opsBaseUrl: base,
+        authHeader: '',
+      };
+    }
     case 'custom': {
       const eclBaseUrl = normalizeTerminologyBaseUrl(input.customEclUrl ?? '');
       const opsBaseUrl = normalizeTerminologyBaseUrl(

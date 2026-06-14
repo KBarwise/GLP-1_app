@@ -17,6 +17,13 @@ import {
   resolveTerminologyConfig,
   type TerminologyPresetId,
 } from '@/lib/terminology/servers';
+import {
+  EHRBASE_COOKIE,
+  isEhrbasePresetId,
+  resolveEhrbaseConfig,
+  type EhrbasePresetId,
+} from '@/lib/ehrbase/servers';
+import { ehrbaseApiUrl } from '@/lib/ehrbase/servers';
 import { implicitValueSetUrl } from '@/lib/terminology/ecl';
 
 function assertAdmin(): void {
@@ -331,4 +338,173 @@ export async function saveTerminologyConfig(
   revalidatePath('/cohort');
 
   return testTerminologyBases(config.eclBaseUrl, config.opsBaseUrl, config.authHeader);
+}
+
+export type SaveEhrbaseInput = {
+  presetId: EhrbasePresetId;
+  customBaseUrl?: string;
+  useAuth?: boolean;
+  authHeader?: string;
+  clearAuth?: boolean;
+};
+
+function resolveEhrbaseForInput(input: SaveEhrbaseInput) {
+  const jar = cookies();
+  const existingAuth = jar.get(EHRBASE_COOKIE.auth)?.value ?? '';
+
+  let authToUse = '';
+  if (input.presetId === 'custom') {
+    if (input.clearAuth || !input.useAuth) {
+      authToUse = '';
+    } else if (input.authHeader?.trim()) {
+      authToUse = input.authHeader.trim();
+    } else {
+      authToUse = existingAuth;
+    }
+  }
+
+  return resolveEhrbaseConfig({
+    presetId: input.presetId,
+    customBaseUrl: input.customBaseUrl,
+    customAuthHeader: authToUse,
+  });
+}
+
+async function testEhrbaseConfig(
+  baseUrl: string,
+  authHeader: string,
+): Promise<FhirConnectionTestResult> {
+  if (!baseUrl) {
+    return { ok: false, message: 'EHRbase base URL is required.' };
+  }
+
+  const auth =
+    authHeader.startsWith('Bearer ') || authHeader.startsWith('Basic ')
+      ? authHeader
+      : authHeader
+        ? `Bearer ${authHeader}`
+        : '';
+
+  const headers: Record<string, string> = {
+    Accept: 'application/json',
+    'Content-Type': 'application/json',
+    ...(auth ? { Authorization: auth } : {}),
+  };
+
+  try {
+    const aqlUrl = ehrbaseApiUrl(baseUrl, '/query/aql');
+    const aqlRes = await fetch(aqlUrl, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        q: 'SELECT e/ehr_id/value FROM EHR e LIMIT 1',
+        fetch: 1,
+      }),
+      cache: 'no-store',
+    });
+
+    if (!aqlRes.ok) {
+      return { ok: false, message: `AQL query returned HTTP ${aqlRes.status}` };
+    }
+
+    const aql = (await aqlRes.json()) as { rows?: unknown[][] };
+    const sampleId = aql.rows?.[0]?.[0];
+    const countRes = await fetch(aqlUrl, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ q: 'SELECT count(e) FROM EHR e', fetch: 1 }),
+      cache: 'no-store',
+    });
+
+    let ehrCount = 0;
+    if (countRes.ok) {
+      const countBody = (await countRes.json()) as { rows?: unknown[][] };
+      const raw = countBody.rows?.[0]?.[0];
+      ehrCount = typeof raw === 'number' ? raw : Number(raw) || 0;
+    }
+
+    const parts = ['AQL query: OK'];
+    if (typeof sampleId === 'string') {
+      parts.push(`sample EHR: ${sampleId.slice(0, 8)}…`);
+    }
+    if (ehrCount > 0) {
+      parts.push(`${ehrCount} EHR(s) in repository`);
+    }
+
+    return { ok: true, message: parts.join(' · ') };
+  } catch (e) {
+    return { ok: false, message: (e as Error).message };
+  }
+}
+
+export async function testEhrbaseServerConnection(
+  input: SaveEhrbaseInput,
+): Promise<FhirConnectionTestResult> {
+  assertAdmin();
+  const config = resolveEhrbaseForInput(input);
+  return testEhrbaseConfig(config.baseUrl, config.authHeader);
+}
+
+export async function saveEhrbaseConfig(
+  input: SaveEhrbaseInput,
+): Promise<FhirConnectionTestResult> {
+  assertAdmin();
+
+  if (!isEhrbasePresetId(input.presetId)) {
+    throw new Error('Invalid EHRbase server preset.');
+  }
+
+  const jar = cookies();
+  const existingAuth = jar.get(EHRBASE_COOKIE.auth)?.value ?? '';
+
+  let authToStore = '';
+  if (input.presetId === 'custom') {
+    if (input.clearAuth || !input.useAuth) {
+      authToStore = '';
+    } else if (input.authHeader?.trim()) {
+      authToStore = input.authHeader.trim();
+    } else {
+      authToStore = existingAuth;
+    }
+  }
+
+  const config = resolveEhrbaseConfig({
+    presetId: input.presetId,
+    customBaseUrl: input.customBaseUrl,
+    customAuthHeader: authToStore,
+  });
+
+  if (input.presetId === 'custom' && !config.baseUrl) {
+    throw new Error('Enter an EHRbase base URL for the custom server.');
+  }
+
+  if (input.presetId === 'env' && !config.baseUrl) {
+    throw new Error('EHRBASE_BASE_URL is not set in .env.local.');
+  }
+
+  const cookieOpts = {
+    path: '/',
+    maxAge: 60 * 60 * 24 * 365,
+    sameSite: 'lax' as const,
+  };
+
+  jar.set(EHRBASE_COOKIE.preset, input.presetId, cookieOpts);
+
+  if (input.presetId === 'custom') {
+    jar.set(EHRBASE_COOKIE.customUrl, config.baseUrl, cookieOpts);
+    if (authToStore) {
+      jar.set(EHRBASE_COOKIE.auth, authToStore, { ...cookieOpts, httpOnly: true });
+    } else {
+      jar.delete(EHRBASE_COOKIE.auth);
+    }
+  } else {
+    jar.delete(EHRBASE_COOKIE.customUrl);
+    jar.delete(EHRBASE_COOKIE.auth);
+  }
+
+  jar.set(EHRBASE_COOKIE.displayLabel, config.label, cookieOpts);
+
+  revalidatePath('/admin/settings');
+
+  return testEhrbaseConfig(config.baseUrl, config.authHeader);
 }

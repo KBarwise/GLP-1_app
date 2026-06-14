@@ -4,23 +4,28 @@ import { Card, CardTitle } from '@/components/ui/primitives';
 import { ClinicSettingsForm } from './clinic-settings-form';
 import { FhirServerForm } from './fhir-server-form';
 import { TerminologySettingsForm } from './terminology-settings-form';
+import { EhrbaseServerForm } from './ehrbase-server-form';
 import { TerminologyBindingsPreview } from './terminology-bindings-preview';
 import { getFhirServerConfigForAdmin } from '@/lib/fhir/config';
 import { getTerminologyConfigForAdmin } from '@/lib/terminology/config';
+import { getEhrbaseConfigForAdmin } from '@/lib/ehrbase/config';
 import { FHIR_COOKIE } from '@/lib/fhir/servers';
 import { TERMINOLOGY_COOKIE } from '@/lib/terminology/servers';
+import { EHRBASE_COOKIE } from '@/lib/ehrbase/servers';
 import { PRODUCT_FULL_NAME } from '@/lib/clinic/branding';
-import { Database, PlugZap, Settings } from 'lucide-react';
+import { Database, HardDrive, PlugZap, Settings } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
 
 export default function AdminSettingsPage() {
   const fhir = getFhirServerConfigForAdmin();
   const terminology = getTerminologyConfigForAdmin();
+  const ehrbase = getEhrbaseConfigForAdmin();
   const jar = cookies();
   const customFhirBaseUrl = jar.get(FHIR_COOKIE.customUrl)?.value ?? '';
   const customTermEclUrl = jar.get(TERMINOLOGY_COOKIE.eclUrl)?.value ?? '';
   const customTermOpsUrl = jar.get(TERMINOLOGY_COOKIE.opsUrl)?.value ?? '';
+  const customEhrbaseUrl = jar.get(EHRBASE_COOKIE.customUrl)?.value ?? '';
 
   return (
     <div className="p-6 max-w-5xl">
@@ -49,6 +54,23 @@ export default function AdminSettingsPage() {
             label: fhir.label,
             hasBearerToken: fhir.hasBearerToken,
             customBaseUrl: customFhirBaseUrl,
+          }}
+        />
+      </Card>
+
+      <Card className="mb-4">
+        <CardTitle icon={<HardDrive className="h-4 w-4" />}>EHRbase server</CardTitle>
+        <p className="text-[12px] text-ink-500 mb-4">
+          openEHR clinical data repository — stores compositions and EHR records. Connected
+          alongside the FHIR server above.
+        </p>
+        <EhrbaseServerForm
+          initial={{
+            presetId: ehrbase.presetId,
+            baseUrl: ehrbase.baseUrl,
+            label: ehrbase.label,
+            hasAuthHeader: ehrbase.hasAuthHeader,
+            customBaseUrl: customEhrbaseUrl,
           }}
         />
       </Card>

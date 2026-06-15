@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useRef, useState, useTransition } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useClinic } from '@/components/clinic/clinic-context';
+import { canBookAppointments, receptionBookPatientUrl } from '@/lib/clinic/access';
 import {
   checkMrnAvailable,
   createPatient,
@@ -92,6 +94,7 @@ export function PatientForm({
   intakeId?: string;
 }) {
   const router = useRouter();
+  const { role } = useClinic();
   const [form, setForm] = useState<PatientFormData>(initial ?? emptyPatientForm());
   const [tab, setTab] = useState<TabId>('demographics');
   const [errors, setErrors] = useState<PatientFormErrors>({});
@@ -656,6 +659,19 @@ export function PatientForm({
           }`}
         >
           {result.message}
+          {result.ok && result.id && canBookAppointments(role) && (
+            <span className="block mt-2">
+              <Link
+                href={receptionBookPatientUrl(
+                  result.id,
+                  `${form.given} ${form.family}`.trim() || 'Patient',
+                )}
+                className="inline-flex items-center font-medium underline"
+              >
+                Book appointment →
+              </Link>
+            </span>
+          )}
           {result.ok && result.id && !isEdit && (
             <span className="block mt-1">
               <Link href={`/register/${result.id}`} className="underline">

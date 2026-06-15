@@ -279,6 +279,8 @@ export const buildAppointment = (args: {
   start: string;
   description?: string;
   workflow?: VisitWorkflow;
+  practitionerId?: string;
+  practitionerName?: string;
 }): Appointment => {
   const role = CLINIC_ROLES[args.clinicRole];
   const start = new Date(args.start);
@@ -298,11 +300,24 @@ export const buildAppointment = (args: {
     start: start.toISOString(),
     end: end.toISOString(),
     created: new Date().toISOString(),
-    participant: [{
-      actor: patientRef(args.patientId, args.patientName),
-      status: 'accepted',
-      required: 'required',
-    }],
+    participant: [
+      {
+        actor: patientRef(args.patientId, args.patientName),
+        status: 'accepted',
+        required: 'required',
+      },
+      ...(args.practitionerId
+        ? [{
+            actor: {
+              reference: `Practitioner/${args.practitionerId}`,
+              type: 'Practitioner',
+              display: args.practitionerName,
+            },
+            status: 'accepted' as const,
+            required: 'required' as const,
+          }]
+        : []),
+    ],
   };
   return withWorkflow(base, args.workflow ?? 'scheduled');
 };

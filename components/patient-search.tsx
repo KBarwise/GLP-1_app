@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Search } from 'lucide-react';
 import { useClinic } from '@/components/clinic/clinic-context';
-import { patientDestination, receptionBookPatientUrl } from '@/lib/clinic/access';
+import { patientDestination, receptionBookPatientUrl, canBookAppointments } from '@/lib/clinic/access';
 
 type SearchHit = {
   id: string;
@@ -117,7 +117,7 @@ export function PatientSearch({
                   {h.gender ?? '?'} · {h.age ?? '?'}y
                 </div>
               </button>
-              {role === 'reception' && (
+              {canBookAppointments(role) && (
                 <button
                   type="button"
                   onClick={() => {

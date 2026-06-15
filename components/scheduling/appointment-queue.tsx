@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useTransition } from 'react';
+import { useState, useTransition } from 'react';
 import { Badge } from '@/components/ui/primitives';
 import { formatTime } from '@/lib/clinical/scheduling';
 import { WORKFLOW_LABELS, type VisitWorkflow } from '@/lib/clinical/workflow';
@@ -64,12 +64,25 @@ function QueueRow({ row, deskRole }: { row: AppointmentRow; deskRole: ActingRole
   const router = useRouter();
   const patientHref = row.patientId ? patientDestination(deskRole, row.patientId) : null;
   const [pending, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
   const a = row.appointment;
   const id = a.id!;
   const wf = row.workflow;
 
-  function run(fn: () => Promise<unknown>) {
-    startTransition(() => void fn());
+  function run(fn: () => Promise<unknown>, navigateTo?: string) {
+    setError(null);
+    startTransition(async () => {
+      try {
+        await fn();
+        if (navigateTo) {
+          router.push(navigateTo);
+        } else {
+          router.refresh();
+        }
+      } catch (err) {
+        setError((err as Error).message);
+      }
+    });
   }
 
   const nurseDocHref = row.patientId
@@ -96,6 +109,9 @@ function QueueRow({ row, deskRole }: { row: AppointmentRow; deskRole: ActingRole
         <Badge tone={workflowTone(wf)}>{WORKFLOW_LABELS[wf]}</Badge>
       </td>
       <td className="py-2.5 text-right space-x-1 whitespace-nowrap">
+        {error && (
+          <p className="text-danger text-[11px] mb-1">{error}</p>
+        )}
         {deskRole === 'reception' && (
           <>
             {a.status === 'booked' && wf === 'scheduled' && (
@@ -121,10 +137,7 @@ function QueueRow({ row, deskRole }: { row: AppointmentRow; deskRole: ActingRole
               <ActionBtn
                 disabled={pending}
                 onClick={() =>
-                  run(async () => {
-                    await advanceVisitWorkflow(id, 'nurse-in-progress', 'arrived');
-                    router.push(nurseDocHref);
-                  })
+                  run(() => advanceVisitWorkflow(id, 'nurse-in-progress', 'arrived'), nurseDocHref)
                 }
               >
                 Start

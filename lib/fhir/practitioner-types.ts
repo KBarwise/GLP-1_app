@@ -27,3 +27,11 @@ export function emptyProviderForm(): ProviderFormData {
     active: true,
   };
 }
+
+/** Map provider directory row to nurse/doctor clinic role for scheduling. */
+export function providerClinicRole(row: ProviderRow): 'doctor' | 'nurse' | null {
+  const r = row.role.toLowerCase();
+  if (r.includes('physician') || r.includes('doctor')) return 'doctor';
+  if (r.includes('nurse')) return 'nurse';
+  return null;
+}

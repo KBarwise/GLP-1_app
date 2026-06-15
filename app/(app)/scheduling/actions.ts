@@ -3,7 +3,6 @@
 import { revalidatePath } from 'next/cache';
 import {
   createAppointment,
-  findAnyActiveAppointmentForPatient,
   findActiveDoctorAppointmentForPatient,
   findActiveNurseAppointmentForPatient,
   updateAppointmentStatus,
@@ -14,12 +13,18 @@ import { getActingRoleFromCookie } from '@/lib/clinic/server-role';
 import type { ClinicRole } from '@/lib/clinical/scheduling';
 import type { VisitWorkflow } from '@/lib/clinical/workflow';
 import type { Appointment } from '@/lib/fhir/resources';
+import { formatFhirActionError } from '@/lib/fhir/error-message';
 
 function revalidateScheduling() {
   revalidatePath('/reception');
   revalidatePath('/clinic/nurse');
   revalidatePath('/clinic/doctor');
+  revalidatePath('/reception/book');
 }
+
+export type BookAppointmentResult =
+  | { ok: true; appointment: Appointment }
+  | { ok: false; error: string };
 
 export async function bookAppointment(args: {
   patientId: string;
@@ -27,17 +32,31 @@ export async function bookAppointment(args: {
   clinicRole: ClinicRole;
   start: string;
   description?: string;
-}): Promise<Appointment> {
-  const normalizedStart = new Date(args.start).toISOString();
-  const appointmentDate = normalizedStart.slice(0, 10);
-  const existing = await findAnyActiveAppointmentForPatient(args.patientId, appointmentDate);
-  if (existing) {
-    throw new Error('This patient is already on the appointment board for that day.');
+  practitionerId: string;
+  practitionerName?: string;
+}): Promise<BookAppointmentResult> {
+  if (!args.practitionerId?.trim()) {
+    return { ok: false, error: 'Select a provider for this appointment.' };
   }
 
-  const created = await createAppointment(args);
-  revalidateScheduling();
-  return created;
+  const startDate = new Date(args.start);
+  if (Number.isNaN(startDate.getTime())) {
+    return { ok: false, error: 'Enter a valid date and time.' };
+  }
+
+  try {
+    const created = await createAppointment({
+      ...args,
+      start: startDate.toISOString(),
+    });
+    revalidateScheduling();
+    return { ok: true, appointment: created };
+  } catch (err) {
+    return {
+      ok: false,
+      error: formatFhirActionError(err, 'Could not book this appointment. Check patient, provider, and time.'),
+    };
+  }
 }
 
 export async function setAppointmentStatus(

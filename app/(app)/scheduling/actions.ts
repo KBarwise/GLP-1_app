@@ -13,12 +13,18 @@ import { getActingRoleFromCookie } from '@/lib/clinic/server-role';
 import type { ClinicRole } from '@/lib/clinical/scheduling';
 import type { VisitWorkflow } from '@/lib/clinical/workflow';
 import type { Appointment } from '@/lib/fhir/resources';
+import { formatFhirActionError } from '@/lib/fhir/error-message';
 
 function revalidateScheduling() {
   revalidatePath('/reception');
   revalidatePath('/clinic/nurse');
   revalidatePath('/clinic/doctor');
+  revalidatePath('/reception/book');
 }
+
+export type BookAppointmentResult =
+  | { ok: true; appointment: Appointment }
+  | { ok: false; error: string };
 
 export async function bookAppointment(args: {
   patientId: string;
@@ -28,14 +34,29 @@ export async function bookAppointment(args: {
   description?: string;
   practitionerId: string;
   practitionerName?: string;
-}): Promise<Appointment> {
+}): Promise<BookAppointmentResult> {
   if (!args.practitionerId?.trim()) {
-    throw new Error('Select a provider for this appointment.');
+    return { ok: false, error: 'Select a provider for this appointment.' };
   }
-  const normalizedStart = new Date(args.start).toISOString();
-  const created = await createAppointment({ ...args, start: normalizedStart });
-  revalidateScheduling();
-  return created;
+
+  const startDate = new Date(args.start);
+  if (Number.isNaN(startDate.getTime())) {
+    return { ok: false, error: 'Enter a valid date and time.' };
+  }
+
+  try {
+    const created = await createAppointment({
+      ...args,
+      start: startDate.toISOString(),
+    });
+    revalidateScheduling();
+    return { ok: true, appointment: created };
+  } catch (err) {
+    return {
+      ok: false,
+      error: formatFhirActionError(err, 'Could not book this appointment. Check patient, provider, and time.'),
+    };
+  }
 }
 
 export async function setAppointmentStatus(

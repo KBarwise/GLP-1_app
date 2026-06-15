@@ -82,23 +82,23 @@ export function BookAppointmentForm({
     }
     setError(null);
     startTransition(async () => {
-      try {
-        await bookAppointment({
-          patientId: selected.id,
-          patientName: selected.name,
-          clinicRole,
-          start: new Date(start).toISOString(),
-          practitionerId,
-          practitionerName: selectedProvider?.name,
-        });
-        setQuery('');
-        setHits([]);
-        if (!initialPatient?.id) setSelected(null);
-        router.replace(`${afterBookPath}?date=${defaultDate}`);
-        router.refresh();
-      } catch (err) {
-        setError((err as Error).message);
+      const result = await bookAppointment({
+        patientId: selected.id,
+        patientName: selected.name,
+        clinicRole,
+        start,
+        practitionerId,
+        practitionerName: selectedProvider?.name,
+      });
+      if (!result.ok) {
+        setError(result.error);
+        return;
       }
+      setQuery('');
+      setHits([]);
+      if (!initialPatient?.id) setSelected(null);
+      router.replace(`${afterBookPath}?date=${defaultDate}`);
+      router.refresh();
     });
   }
 

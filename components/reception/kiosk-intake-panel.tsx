@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { getPendingKioskIntakes } from '@/app/(app)/kiosk/actions';
 import { kioskLeadDisplayName } from '@/lib/kiosk/intake-types';
+import { formatFhirErrorMessage } from '@/lib/fhir/errors';
 import { Card, CardTitle } from '@/components/ui/primitives';
 import { ClipboardList } from 'lucide-react';
 
@@ -11,7 +12,7 @@ export async function KioskIntakePanel() {
   try {
     leads = await getPendingKioskIntakes();
   } catch (e) {
-    loadError = (e as Error).message;
+    loadError = formatFhirErrorMessage(e);
   }
 
   return (

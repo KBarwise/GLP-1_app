@@ -1,6 +1,7 @@
 import { listAppointmentsForDay } from '@/lib/fhir/appointments';
 import { todayDateParam } from '@/lib/clinical/scheduling';
 import { workflowForDoctorQueue } from '@/lib/clinical/workflow';
+import { formatFhirErrorMessage } from '@/lib/fhir/errors';
 import { Card, CardTitle } from '@/components/ui/primitives';
 import { AppointmentQueue } from '@/components/scheduling/appointment-queue';
 import { UserRound } from 'lucide-react';
@@ -13,7 +14,15 @@ export default async function DoctorClinicPage({
   searchParams: { date?: string };
 }) {
   const date = searchParams.date ?? todayDateParam();
-  const rows = await listAppointmentsForDay(date);
+  let rows: Awaited<ReturnType<typeof listAppointmentsForDay>> = [];
+  let appointmentsError: string | null = null;
+
+  try {
+    rows = await listAppointmentsForDay(date);
+  } catch (e) {
+    appointmentsError = formatFhirErrorMessage(e);
+  }
+
   const queue = rows.filter(
     r =>
       workflowForDoctorQueue().includes(r.workflow)
@@ -27,6 +36,11 @@ export default async function DoctorClinicPage({
       <p className="text-sm text-ink-500 mb-4">
         Start opens the patient chart. Use Documentation when you are ready to write the consultation note.
       </p>
+      {appointmentsError && (
+        <p className="text-[13px] text-danger mb-4 rounded-md border border-danger/30 bg-danger-soft/40 px-3 py-2">
+          Could not load today&apos;s appointments: {appointmentsError}
+        </p>
+      )}
       <Card>
         <CardTitle icon={<UserRound className="h-4 w-4" />}>Doctor&apos;s Queue — {date}</CardTitle>
         <form className="mb-3 flex gap-2 items-end" method="get">

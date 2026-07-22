@@ -17,7 +17,7 @@ export function getFhirServerConfig(): FhirServerConfig {
   return resolveFhirServerConfig({
     presetId,
     customBaseUrl,
-    customBearerToken: presetId === 'custom' ? customBearerToken : undefined,
+    customBearerToken: customBearerToken || undefined,
   });
 }
 

@@ -1,4 +1,5 @@
 import { listAppointmentsForDay } from '@/lib/fhir/appointments';
+import { formatFhirErrorMessage } from '@/lib/fhir/errors';
 import { todayDateParam } from '@/lib/clinical/scheduling';
 import { workflowForBilling, workflowForReceptionCheckout, type VisitWorkflow } from '@/lib/clinical/workflow';
 import { Card, CardTitle } from '@/components/ui/primitives';
@@ -27,7 +28,7 @@ export default async function ReceptionPage({
   try {
     rows = await listAppointmentsForDay(date);
   } catch (e) {
-    appointmentsError = (e as Error).message;
+    appointmentsError = formatFhirErrorMessage(e);
   }
 
   const checkout = rows.filter(

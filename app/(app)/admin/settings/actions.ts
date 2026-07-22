@@ -91,17 +91,24 @@ async function testConfig(baseUrl: string, bearerToken: string): Promise<FhirCon
   }
 }
 
+function resolveBearerTokenForInput(
+  input: SaveFhirServerInput,
+  existingBearer: string,
+): string {
+  if (input.presetId !== 'custom' && input.presetId !== 'env') return '';
+
+  if (input.clearBearer || !input.useBearer) return '';
+
+  return input.bearerToken?.trim() || existingBearer;
+}
+
 export async function testFhirServerConnection(
   input: SaveFhirServerInput,
 ): Promise<FhirConnectionTestResult> {
   assertAdmin();
 
   const existingBearer = cookies().get(FHIR_COOKIE.bearer)?.value ?? '';
-  const bearerToken = input.presetId === 'custom'
-    ? (input.clearBearer
-      ? ''
-      : input.bearerToken?.trim() || (input.useBearer ? existingBearer : ''))
-    : '';
+  const bearerToken = resolveBearerTokenForInput(input, existingBearer);
 
   const config = resolveFhirServerConfig({
     presetId: input.presetId,
@@ -122,16 +129,7 @@ export async function saveFhirServerConfig(input: SaveFhirServerInput): Promise<
   const jar = cookies();
   const existingBearer = jar.get(FHIR_COOKIE.bearer)?.value ?? '';
 
-  let bearerToStore = '';
-  if (input.presetId === 'custom') {
-    if (input.clearBearer || !input.useBearer) {
-      bearerToStore = '';
-    } else if (input.bearerToken?.trim()) {
-      bearerToStore = input.bearerToken.trim();
-    } else {
-      bearerToStore = existingBearer;
-    }
-  }
+  const bearerToStore = resolveBearerTokenForInput(input, existingBearer);
 
   const config = resolveFhirServerConfig({
     presetId: input.presetId,
@@ -157,13 +155,17 @@ export async function saveFhirServerConfig(input: SaveFhirServerInput): Promise<
 
   if (input.presetId === 'custom') {
     jar.set(FHIR_COOKIE.customUrl, config.baseUrl, cookieOpts);
+  } else {
+    jar.delete(FHIR_COOKIE.customUrl);
+  }
+
+  if (input.presetId === 'custom' || input.presetId === 'env') {
     if (bearerToStore) {
       jar.set(FHIR_COOKIE.bearer, bearerToStore, { ...cookieOpts, httpOnly: true });
     } else {
       jar.delete(FHIR_COOKIE.bearer);
     }
   } else {
-    jar.delete(FHIR_COOKIE.customUrl);
     jar.delete(FHIR_COOKIE.bearer);
   }
 

@@ -33,12 +33,13 @@ export function FhirServerForm({
   const [pending, startTransition] = useTransition();
 
   function buildInput() {
+    const usesBearer = presetId === 'custom' || presetId === 'env';
     return {
       presetId,
       customBaseUrl: presetId === 'custom' ? customBaseUrl : undefined,
-      useBearer: presetId === 'custom' && useBearer,
+      useBearer: usesBearer && useBearer,
       bearerToken: bearerToken.trim() || undefined,
-      clearBearer: presetId === 'custom' && clearBearer,
+      clearBearer: usesBearer && clearBearer,
     };
   }
 
@@ -90,6 +91,7 @@ export function FhirServerForm({
   }
 
   const selectedPreset = FHIR_SERVER_PRESETS.find(p => p.id === presetId);
+  const showBearerOptions = presetId === 'custom' || presetId === 'env';
 
   return (
     <form onSubmit={onSave} className="space-y-4 text-[13px]">
@@ -117,68 +119,70 @@ export function FhirServerForm({
       </div>
 
       {presetId === 'custom' && (
-        <>
-          <div>
-            <label className="block text-xs text-ink-500 mb-1.5">Base URL</label>
-            <input
-              className={inputClass}
-              value={customBaseUrl}
-              onChange={e => setCustomBaseUrl(e.target.value)}
-              placeholder="https://fhir.example.com/fhir"
-              required
-            />
-          </div>
-          <div className="space-y-2">
-            <label className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                checked={useBearer}
-                onChange={e => {
-                  setUseBearer(e.target.checked);
-                  if (!e.target.checked) setClearBearer(true);
-                }}
-                className="rounded border-ink-100"
-              />
-              <span>Send bearer token</span>
-            </label>
-            {useBearer && (
-              <input
-                type="password"
-                className={inputClass}
-                value={bearerToken}
-                onChange={e => {
-                  setBearerToken(e.target.value);
-                  setClearBearer(false);
-                }}
-                placeholder={
-                  initial.hasBearerToken
-                    ? 'Leave blank to keep current token'
-                    : 'Paste bearer token (optional)'
-                }
-                autoComplete="off"
-              />
-            )}
-            {initial.hasBearerToken && useBearer && (
-              <label className="flex items-center gap-2 text-[12px] text-ink-500">
-                <input
-                  type="checkbox"
-                  checked={clearBearer}
-                  onChange={e => setClearBearer(e.target.checked)}
-                  className="rounded border-ink-100"
-                />
-                Remove stored bearer token
-              </label>
-            )}
-          </div>
-        </>
+        <div>
+          <label className="block text-xs text-ink-500 mb-1.5">Base URL</label>
+          <input
+            className={inputClass}
+            value={customBaseUrl}
+            onChange={e => setCustomBaseUrl(e.target.value)}
+            placeholder="https://fhir.example.com/fhir"
+            required
+          />
+        </div>
       )}
 
       {presetId === 'env' && (
         <p className="text-[12px] text-ink-500 rounded-md bg-ink-50 border border-ink-100 p-3">
           Uses <code className="text-[11px]">FHIR_BASE_URL</code> and{' '}
-          <code className="text-[11px]">FHIR_BEARER_TOKEN</code> from{' '}
-          <code className="text-[11px]">.env.local</code>. Change env vars and restart the dev server to update defaults.
+          <code className="text-[11px]">FHIR_BEARER_TOKEN</code> from your deployment environment.
+          If the server requires auth and the env token is missing on Vercel, save a bearer token below
+          for this browser.
         </p>
+      )}
+
+      {showBearerOptions && (
+        <div className="space-y-2">
+          <label className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={useBearer}
+              onChange={e => {
+                setUseBearer(e.target.checked);
+                if (!e.target.checked) setClearBearer(true);
+              }}
+              className="rounded border-ink-100"
+            />
+            <span>Send bearer token</span>
+          </label>
+          {useBearer && (
+            <input
+              type="password"
+              className={inputClass}
+              value={bearerToken}
+              onChange={e => {
+                setBearerToken(e.target.value);
+                setClearBearer(false);
+              }}
+              placeholder={
+                initial.hasBearerToken
+                  ? 'Leave blank to keep current token'
+                  : 'Paste bearer token'
+              }
+              autoComplete="off"
+            />
+          )}
+          {initial.hasBearerToken && useBearer && (
+            <label className="flex items-center gap-2 text-[12px] text-ink-500">
+              <input
+                type="checkbox"
+                checked={clearBearer}
+                onChange={e => setClearBearer(e.target.checked)}
+                className="rounded border-ink-100"
+              />
+              Remove stored bearer token
+            </label>
+          )}
+        </div>
       )}
 
       <div className="flex flex-wrap items-center gap-2">

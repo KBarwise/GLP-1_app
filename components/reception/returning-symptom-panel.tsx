@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { getNewReturningSymptomReports } from '@/app/(app)/kiosk/actions';
+import { formatFhirErrorMessage } from '@/lib/fhir/errors';
 import { Card, CardTitle } from '@/components/ui/primitives';
 import { AlertTriangle } from 'lucide-react';
 
@@ -10,7 +11,7 @@ export async function ReturningSymptomPanel() {
   try {
     reports = await getNewReturningSymptomReports();
   } catch (e) {
-    loadError = (e as Error).message;
+    loadError = formatFhirErrorMessage(e);
   }
 
   if (loadError) {

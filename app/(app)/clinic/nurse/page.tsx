@@ -1,6 +1,7 @@
 import { listAppointmentsForDay } from '@/lib/fhir/appointments';
 import { todayDateParam } from '@/lib/clinical/scheduling';
 import { workflowForNurseQueue } from '@/lib/clinical/workflow';
+import { formatFhirErrorMessage } from '@/lib/fhir/errors';
 import { Card, CardTitle } from '@/components/ui/primitives';
 import { AppointmentQueue } from '@/components/scheduling/appointment-queue';
 import { Stethoscope } from 'lucide-react';
@@ -13,7 +14,15 @@ export default async function NurseClinicPage({
   searchParams: { date?: string };
 }) {
   const date = searchParams.date ?? todayDateParam();
-  const rows = await listAppointmentsForDay(date);
+  let rows: Awaited<ReturnType<typeof listAppointmentsForDay>> = [];
+  let appointmentsError: string | null = null;
+
+  try {
+    rows = await listAppointmentsForDay(date);
+  } catch (e) {
+    appointmentsError = formatFhirErrorMessage(e);
+  }
+
   const queue = rows.filter(
     r =>
       workflowForNurseQueue().includes(r.workflow)
@@ -27,6 +36,11 @@ export default async function NurseClinicPage({
       <p className="text-sm text-ink-500 mb-4">
         Vitals, anthropometrics, point-of-care tests, and nursing notes. Send to the doctor when complete.
       </p>
+      {appointmentsError && (
+        <p className="text-[13px] text-danger mb-4 rounded-md border border-danger/30 bg-danger-soft/40 px-3 py-2">
+          Could not load today&apos;s appointments: {appointmentsError}
+        </p>
+      )}
       <Card>
         <CardTitle icon={<Stethoscope className="h-4 w-4" />}>Nurse Queue — {date}</CardTitle>
         <form className="mb-3 flex gap-2 items-end" method="get">

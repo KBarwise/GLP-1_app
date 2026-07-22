@@ -52,13 +52,16 @@ export function resolveFhirServerConfig(input: {
   customBearerToken?: string;
 }): FhirServerConfig {
   switch (input.presetId) {
-    case 'env':
+    case 'env': {
+      const envBearer = (process.env.FHIR_BEARER_TOKEN ?? '').trim();
+      const cookieBearer = input.customBearerToken?.trim() ?? '';
       return {
         presetId: 'env',
         label: 'Environment (.env.local)',
         baseUrl: normalizeFhirBaseUrl(process.env.FHIR_BASE_URL ?? ''),
-        bearerToken: process.env.FHIR_BEARER_TOKEN ?? '',
+        bearerToken: envBearer || cookieBearer,
       };
+    }
     case 'hapi-public':
       return {
         presetId: 'hapi-public',
